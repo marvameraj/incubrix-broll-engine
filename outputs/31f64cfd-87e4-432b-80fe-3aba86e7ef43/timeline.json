@@ -1,0 +1,32 @@
+[
+  {
+    "scene_index": 0,
+    "text": "Welcome to our developer tutorial on Python automation.",
+    "start_s": 0.0,
+    "end_s": 3.2,
+    "search_query": "software engineer coding python on laptop",
+    "clip_id": "generated_card:0",
+    "source": "IncuBrix Kinetic Motion Generator (Local Fallback)",
+    "license": "Original Generated Asset (100% Commercial Use)",
+    "attribution": "Generated locally via Pillow + FFmpeg",
+    "url": "local://kinetic-generator",
+    "is_ai_generated": true,
+    "reason": "Matched user-provided visual_hint | Rule 1: Abstract/stat scene or primary provider unavailable -> Kinetic Motion Fallback",
+    "relevance_score": 4.0
+  },
+  {
+    "scene_index": 1,
+    "text": "Deploy your containers with a single command.",
+    "start_s": 3.2,
+    "end_s": 6.0,
+    "search_query": "data center server racks",
+    "clip_id": "generated_card:1",
+    "source": "IncuBrix Kinetic Motion Generator (Local Fallback)",
+    "license": "Original Generated Asset (100% Commercial Use)",
+    "attribution": "Generated locally via Pillow + FFmpeg",
+    "url": "local://kinetic-generator",
+    "is_ai_generated": true,
+    "reason": "Matched user-provided visual_hint | Rule 1: Abstract/stat scene or primary provider unavailable -> Kinetic Motion Fallback",
+    "relevance_score": 4.0
+  }
+]

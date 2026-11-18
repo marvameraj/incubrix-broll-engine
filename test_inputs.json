@@ -1,0 +1,45 @@
+[
+  {
+    "name": "01_double_meaning_cloud_value",
+    "payload": {
+      "script": "Modern cloud computing powers global startups. True value comes from reliable infrastructure rather than hype.",
+      "aspect_ratios": ["16:9", "9:16"],
+      "style": "bright, modern, real-world footage",
+      "avoid": ["people's faces"],
+      "captions": {"burn_in": true, "srt": true}
+    }
+  },
+  {
+    "name": "02_abstract_and_stats",
+    "payload": {
+      "script": "Trust is earned slowly across every customer interaction. Enterprise sales grew 40% in 2025.",
+      "aspect_ratios": ["16:9"],
+      "captions": {"burn_in": true, "srt": true}
+    }
+  },
+  {
+    "name": "03_incubrix_scene_list",
+    "payload": {
+      "scenes": [
+        {"text": "Welcome to our developer tutorial on Python automation.", "visual_hint": "software engineer coding python on laptop"},
+        {"text": "Deploy your containers with a single command.", "visual_hint": "data center server racks"}
+      ],
+      "aspect_ratios": ["16:9", "1:1"]
+    }
+  },
+  {
+    "name": "04_provider_outage_resilience",
+    "payload": {
+      "script": "Even when an external API goes down, our fallback engine keeps rendering seamlessly.",
+      "aspect_ratios": ["16:9"],
+      "simulate_primary_outage": true
+    }
+  },
+  {
+    "name": "05_hardcase_empty_script",
+    "payload": {
+      "script": "   ",
+      "aspect_ratios": ["16:9"]
+    }
+  }
+]

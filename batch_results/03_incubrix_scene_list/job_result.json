@@ -1,0 +1,13 @@
+{
+  "job_id": "31f64cfd-87e4-432b-80fe-3aba86e7ef43",
+  "status": "succeeded",
+  "progress": 100,
+  "results": {
+    "captions.srt": "/files/31f64cfd-87e4-432b-80fe-3aba86e7ef43/captions.srt",
+    "video_16x9.mp4": "/files/31f64cfd-87e4-432b-80fe-3aba86e7ef43/video_16x9.mp4",
+    "video_1x1.mp4": "/files/31f64cfd-87e4-432b-80fe-3aba86e7ef43/video_1x1.mp4",
+    "timeline.json": "/files/31f64cfd-87e4-432b-80fe-3aba86e7ef43/timeline.json",
+    "manifest.json": "/files/31f64cfd-87e4-432b-80fe-3aba86e7ef43/manifest.json"
+  },
+  "error": null
+}

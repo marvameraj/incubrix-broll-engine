@@ -1,0 +1,168 @@
+openapi: 3.1.0
+info:
+  title: IncuBrix Script & Voiceover to B-Roll Engine
+  version: 1.0.0
+  description: Asynchronous pipeline converting scripts, scene lists, or voiceover audio into multi-aspect-ratio B-roll videos with synced captions, timeline metadata, and single-scene swap support.
+servers:
+  - url: http://localhost:8000
+    description: Local / Docker Compose server
+paths:
+  /health:
+    get:
+      summary: Liveness probe
+      responses:
+        "200":
+          description: Service is alive
+  /ready:
+    get:
+      summary: Readiness probe
+      responses:
+        "200":
+          description: Service dependencies ready
+  /api/v1/broll/jobs:
+    post:
+      summary: Create an asynchronous B-roll generation job from script, scenes, or audio_url
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobCreateRequest"
+      responses:
+        "202":
+          description: Job accepted and queued
+        "400":
+          description: Validation error
+        "429":
+          description: Rate limit exceeded
+  /api/v1/broll/jobs/upload:
+    post:
+      summary: Create an asynchronous B-roll job from an uploaded audio file (.mp3, .wav, .m4a)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                aspect_ratios:
+                  type: string
+                  default: "16:9"
+                style:
+                  type: string
+                burn_in:
+                  type: boolean
+                  default: true
+      responses:
+        "202":
+          description: Upload accepted and queued
+        "400":
+          description: Unsupported file type or corrupted media
+  /api/v1/jobs/{job_id}:
+    get:
+      summary: Poll job status, progress, and output artifact URLs
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job status and result links
+        "404":
+          description: Job not found
+  /api/v1/broll/jobs/{job_id}/scenes/{scene_index}/swap:
+    post:
+      summary: Swap a single scene clip and re-render only the affected segment
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: scene_index
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                visual_hint:
+                  type: string
+                new_query:
+                  type: string
+      responses:
+        "200":
+          description: Scene swapped and final video re-assembled
+        "400":
+          description: Invalid scene index or job not ready
+components:
+  schemas:
+    JobCreateRequest:
+      type: object
+      properties:
+        audio_url:
+          type: string
+          nullable: true
+        script:
+          type: string
+          nullable: true
+        scenes:
+          type: array
+          nullable: true
+          items:
+            type: object
+            required: [text]
+            properties:
+              text:
+                type: string
+              visual_hint:
+                type: string
+                nullable: true
+        voice:
+          type: string
+          default: en-IN-female
+        aspect_ratios:
+          type: array
+          items:
+            type: string
+            enum: ["16:9", "9:16", "1:1"]
+          default: ["16:9"]
+        style:
+          type: string
+          default: "bright, modern, real-world footage"
+        avoid:
+          type: array
+          items:
+            type: string
+        captions:
+          type: object
+          properties:
+            burn_in:
+              type: boolean
+              default: true
+            srt:
+              type: boolean
+              default: true
+        callback_url:
+          type: string
+          nullable: true
+        simulate_primary_outage:
+          type: boolean
+          default: false

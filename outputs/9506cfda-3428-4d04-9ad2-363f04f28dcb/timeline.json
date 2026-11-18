@@ -1,0 +1,32 @@
+[
+  {
+    "scene_index": 0,
+    "text": "Trust is earned slowly across every customer interaction.",
+    "start_s": 0.0,
+    "end_s": 3.2,
+    "search_query": "trust earned slowly across",
+    "clip_id": "generated_card:0",
+    "source": "IncuBrix Kinetic Motion Generator (Local Fallback)",
+    "license": "Original Generated Asset (100% Commercial Use)",
+    "attribution": "Generated locally via Pillow + FFmpeg",
+    "url": "local://kinetic-generator",
+    "is_ai_generated": true,
+    "reason": "Semantic query 'trust earned slowly across' derived to avoid literal traps and respect avoid=[] | Rule 1: Abstract/stat scene or primary provider unavailable -> Kinetic Motion Fallback",
+    "relevance_score": 4.0
+  },
+  {
+    "scene_index": 1,
+    "text": "Enterprise sales grew 40% in 2025.",
+    "start_s": 3.2,
+    "end_s": 5.6,
+    "search_query": "enterprise sales grew",
+    "clip_id": "generated_card:1",
+    "source": "IncuBrix Kinetic Motion Generator (Local Fallback)",
+    "license": "Original Generated Asset (100% Commercial Use)",
+    "attribution": "Generated locally via Pillow + FFmpeg",
+    "url": "local://kinetic-generator",
+    "is_ai_generated": true,
+    "reason": "Semantic query 'enterprise sales grew' derived to avoid literal traps and respect avoid=[] | Rule 1: Abstract/stat scene or primary provider unavailable -> Kinetic Motion Fallback",
+    "relevance_score": 4.0
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "job_id": "9506cfda-3428-4d04-9ad2-363f04f28dcb",
+  "status": "succeeded",
+  "progress": 100,
+  "results": {
+    "captions.srt": "/files/9506cfda-3428-4d04-9ad2-363f04f28dcb/captions.srt",
+    "video_16x9.mp4": "/files/9506cfda-3428-4d04-9ad2-363f04f28dcb/video_16x9.mp4",
+    "timeline.json": "/files/9506cfda-3428-4d04-9ad2-363f04f28dcb/timeline.json",
+    "manifest.json": "/files/9506cfda-3428-4d04-9ad2-363f04f28dcb/manifest.json"
+  },
+  "error": null
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "scene_index": 0,
+    "text": "Cloud computing transforms teams.",
+    "start_s": 0.0,
+    "end_s": 1.6,
+    "search_query": "server room data center technology",
+    "clip_id": "generated_card:0",
+    "source": "IncuBrix Kinetic Motion Generator (Local Fallback)",
+    "license": "Original Generated Asset (100% Commercial Use)",
+    "attribution": "Generated locally via Pillow + FFmpeg",
+    "url": "local://kinetic-generator",
+    "is_ai_generated": true,
+    "reason": "Semantic query 'server room data center technology' derived to avoid literal traps and respect avoid=[] | Rule 1: Abstract/stat scene or primary provider unavailable -> Kinetic Motion Fallback",
+    "relevance_score": 4.0
+  },
+  {
+    "scene_index": 1,
+    "text": "Trust is earned slowly.",
+    "start_s": 1.6,
+    "end_s": 3.2,
+    "search_query": "trust earned slowly",
+    "clip_id": "generated_card:1",
+    "source": "IncuBrix Kinetic Motion Generator (Local Fallback)",
+    "license": "Original Generated Asset (100% Commercial Use)",
+    "attribution": "Generated locally via Pillow + FFmpeg",
+    "url": "local://kinetic-generator",
+    "is_ai_generated": true,
+    "reason": "Semantic query 'trust earned slowly' derived to avoid literal traps and respect avoid=[] | Rule 1: Abstract/stat scene or primary provider unavailable -> Kinetic Motion Fallback",
+    "relevance_score": 4.0
+  }
+]

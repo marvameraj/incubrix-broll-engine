@@ -1,0 +1,23 @@
+{
+  "job_id": "6a663343-dd04-4439-a5f0-a6aa1aa64e80",
+  "providers": {
+    "llm": "mock",
+    "llm_model": "gemini-2.5-flash",
+    "footage": "mock",
+    "tts": "mock"
+  },
+  "settings": {
+    "aspect_ratios": [
+      "16:9"
+    ],
+    "style": "bright, modern, real-world footage",
+    "avoid": []
+  },
+  "timings": {
+    "audio_duration_s": 3.6,
+    "turnaround_s": 9.25
+  },
+  "cost_estimate_usd": 0.00012,
+  "warnings": [],
+  "all_clips_commercial_safe": true
+}

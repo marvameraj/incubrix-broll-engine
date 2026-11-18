@@ -1,0 +1,65 @@
+[
+  {
+    "name": "01_double_meaning_cloud_value",
+    "job_id": "6935e134-e3e7-4ed7-82b7-d77e41b5908f",
+    "status": "succeeded",
+    "elapsed_s": 20.63,
+    "results": {
+      "captions.srt": "/files/6935e134-e3e7-4ed7-82b7-d77e41b5908f/captions.srt",
+      "video_16x9.mp4": "/files/6935e134-e3e7-4ed7-82b7-d77e41b5908f/video_16x9.mp4",
+      "video_9x16.mp4": "/files/6935e134-e3e7-4ed7-82b7-d77e41b5908f/video_9x16.mp4",
+      "timeline.json": "/files/6935e134-e3e7-4ed7-82b7-d77e41b5908f/timeline.json",
+      "manifest.json": "/files/6935e134-e3e7-4ed7-82b7-d77e41b5908f/manifest.json"
+    }
+  },
+  {
+    "name": "02_abstract_and_stats",
+    "job_id": "9506cfda-3428-4d04-9ad2-363f04f28dcb",
+    "status": "succeeded",
+    "elapsed_s": 11.21,
+    "results": {
+      "captions.srt": "/files/9506cfda-3428-4d04-9ad2-363f04f28dcb/captions.srt",
+      "video_16x9.mp4": "/files/9506cfda-3428-4d04-9ad2-363f04f28dcb/video_16x9.mp4",
+      "timeline.json": "/files/9506cfda-3428-4d04-9ad2-363f04f28dcb/timeline.json",
+      "manifest.json": "/files/9506cfda-3428-4d04-9ad2-363f04f28dcb/manifest.json"
+    }
+  },
+  {
+    "name": "03_incubrix_scene_list",
+    "job_id": "31f64cfd-87e4-432b-80fe-3aba86e7ef43",
+    "status": "succeeded",
+    "elapsed_s": 20.38,
+    "results": {
+      "captions.srt": "/files/31f64cfd-87e4-432b-80fe-3aba86e7ef43/captions.srt",
+      "video_16x9.mp4": "/files/31f64cfd-87e4-432b-80fe-3aba86e7ef43/video_16x9.mp4",
+      "video_1x1.mp4": "/files/31f64cfd-87e4-432b-80fe-3aba86e7ef43/video_1x1.mp4",
+      "timeline.json": "/files/31f64cfd-87e4-432b-80fe-3aba86e7ef43/timeline.json",
+      "manifest.json": "/files/31f64cfd-87e4-432b-80fe-3aba86e7ef43/manifest.json"
+    }
+  },
+  {
+    "name": "04_provider_outage_resilience",
+    "job_id": "05688455-a6f4-41c5-8971-e2481e85aced",
+    "status": "succeeded",
+    "elapsed_s": 8.04,
+    "results": {
+      "captions.srt": "/files/05688455-a6f4-41c5-8971-e2481e85aced/captions.srt",
+      "video_16x9.mp4": "/files/05688455-a6f4-41c5-8971-e2481e85aced/video_16x9.mp4",
+      "timeline.json": "/files/05688455-a6f4-41c5-8971-e2481e85aced/timeline.json",
+      "manifest.json": "/files/05688455-a6f4-41c5-8971-e2481e85aced/manifest.json"
+    }
+  },
+  {
+    "name": "05_hardcase_empty_script",
+    "status": "rejected",
+    "http_status": 400,
+    "body": {
+      "error": {
+        "code": "EMPTY_SCRIPT",
+        "message": "Script cannot be empty.",
+        "retryable": false,
+        "details": {}
+      }
+    }
+  }
+]
