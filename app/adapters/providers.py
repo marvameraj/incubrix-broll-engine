@@ -20,6 +20,32 @@ USER_AGENT = "IncuBrixBrollEngine/1.0 (https://github.com/marvameraj/incubrix-br
 
 
 # 1. TTS ADAPTER (Text -> Audio + True Word-Boundary Timestamps)
+# 1. TTS ADAPTER (Text -> Audio + True Word-Boundary Timestamps)
+def _synthesize_pyttsx3(text: str, voice: str, out_path: str) -> None:
+    import pyttsx3
+    engine = pyttsx3.init()
+    voices = engine.getProperty("voices")
+    want_female = "female" in voice.lower()
+    for v in voices:
+        name_low = (v.name or "").lower()
+        if want_female and any(k in name_low for k in ("zira", "heera", "female")):
+            engine.setProperty("voice", v.id)
+            break
+        if not want_female and any(k in name_low for k in ("david", "ravi", "male")):
+            engine.setProperty("voice", v.id)
+            break
+    engine.setProperty("rate", 165)
+    raw_wav = out_path + ".sapi.wav"
+    engine.save_to_file(text, raw_wav)
+    engine.runAndWait()
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", raw_wav, "-ar", "44100", "-ac", "2", out_path],
+        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    if os.path.exists(raw_wav):
+        os.remove(raw_wav)
+
+
 async def synthesize_speech(
     text: str,
     voice: str,
@@ -30,8 +56,9 @@ async def synthesize_speech(
         raise AppError("EMPTY_SCRIPT", "Input script cannot be empty.", status_code=400)
 
     clean_text = text.strip()
+    words = clean_text.split()
+
     if settings.tts_provider == "mock":
-        words = clean_text.split()
         duration = max(3.0, min(float(settings.max_audio_duration_sec), len(words) * 0.42))
         await asyncio.to_thread(
             subprocess.run,
@@ -49,37 +76,51 @@ async def synthesize_speech(
             )
         return duration
 
-    voice_map = {
-        "en-IN-female": "en-IN-NeerjaNeural",
-        "en-IN-male": "en-IN-PrabhatNeural",
-        "en-US-female": "en-US-JennyNeural",
-        "hi-IN-female": "hi-IN-SwaraNeural",
-        "hi-IN-male": "hi-IN-MadhurNeural",
-        "ta-IN-female": "ta-IN-PallaviNeural",
-        "ta-IN-male": "ta-IN-ValluvarNeural",
-    }
-    selected_voice = voice_map.get(voice, voice if "-" in voice else "en-IN-NeerjaNeural")
-    mp3_tmp = out_path + ".mp3"
-    communicate = edge_tts.Communicate(clean_text, selected_voice)
-    with open(mp3_tmp, "wb") as f:
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                f.write(chunk["data"])
-            elif chunk["type"] == "WordBoundary" and word_timings_out is not None:
-                start_s = chunk["offset"] / 10_000_000.0
-                dur_s = chunk["duration"] / 10_000_000.0
-                word_timings_out.append({"word": chunk["text"], "start": round(start_s, 3), "end": round(start_s + dur_s, 3)})
+    if settings.tts_provider == "edge":
+        try:
+            voice_map = {
+                "en-IN-female": "en-IN-NeerjaNeural",
+                "en-IN-male": "en-IN-PrabhatNeural",
+                "en-US-female": "en-US-JennyNeural",
+                "hi-IN-female": "hi-IN-SwaraNeural",
+                "hi-IN-male": "hi-IN-MadhurNeural",
+                "ta-IN-female": "ta-IN-PallaviNeural",
+                "ta-IN-male": "ta-IN-ValluvarNeural",
+            }
+            selected_voice = voice_map.get(voice, voice if "-" in voice else "en-IN-NeerjaNeural")
+            mp3_tmp = out_path + ".mp3"
+            communicate = edge_tts.Communicate(clean_text, selected_voice)
+            with open(mp3_tmp, "wb") as f:
+                async for chunk in communicate.stream():
+                    if chunk["type"] == "audio":
+                        f.write(chunk["data"])
+                    elif chunk["type"] == "WordBoundary" and word_timings_out is not None:
+                        start_s = chunk["offset"] / 10_000_000.0
+                        dur_s = chunk["duration"] / 10_000_000.0
+                        word_timings_out.append({"word": chunk["text"], "start": round(start_s, 3), "end": round(start_s + dur_s, 3)})
 
-    await asyncio.to_thread(
-        subprocess.run,
-        ["ffmpeg", "-y", "-i", mp3_tmp, "-ar", "44100", "-ac", "2", out_path],
-        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-    )
-    if os.path.exists(mp3_tmp):
-        os.remove(mp3_tmp)
-    return get_media_duration(out_path)
+            await asyncio.to_thread(
+                subprocess.run,
+                ["ffmpeg", "-y", "-i", mp3_tmp, "-ar", "44100", "-ac", "2", out_path],
+                check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            if os.path.exists(mp3_tmp):
+                os.remove(mp3_tmp)
+            return get_media_duration(out_path)
+        except Exception as exc:
+            logger.warning(f"edge-tts failed ({exc}); failing over to local SAPI5 speech engine")
 
-
+    # Commercially-safe local OS speech synthesis (pyttsx3 / SAPI5)
+    await asyncio.to_thread(_synthesize_pyttsx3, clean_text, voice, out_path)
+    dur = get_media_duration(out_path)
+    if word_timings_out is not None and not word_timings_out:
+        total_chars = sum(max(1, len(w)) for w in words)
+        cur = 0.0
+        for w in words:
+            w_dur = dur * (max(1, len(w)) / total_chars)
+            word_timings_out.append({"word": w, "start": round(cur, 3), "end": round(cur + w_dur, 3)})
+            cur += w_dur
+    return dur
 def get_media_duration(path: str) -> float:
     res = subprocess.run(
         [

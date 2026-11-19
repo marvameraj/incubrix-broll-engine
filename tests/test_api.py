@@ -1,3 +1,8 @@
+import os
+os.environ["TTS_PROVIDER"] = "mock"
+os.environ["FOOTAGE_PROVIDER"] = "mock"
+os.environ["LLM_PROVIDER"] = "mock"
+os.environ["ASR_PROVIDER"] = "mock"
 import time
 from fastapi.testclient import TestClient
 from app.main import app
