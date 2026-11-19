@@ -1,78 +1,98 @@
 [
   {
     "name": "01_double_meaning_cloud_value",
-    "script": "Modern cloud computing teams deliver real business value every day. Engineering reliability builds lasting customer trust.",
-    "aspect_ratios": ["16:9", "9:16"],
-    "style": "bright, modern, real-world footage",
-    "avoid": ["sky", "rain"]
+    "payload": {
+      "script": "Modern cloud computing teams deliver real business value every day. Engineering reliability builds lasting customer trust.",
+      "aspect_ratios": ["16:9", "9:16"],
+      "style": "bright, modern, real-world footage",
+      "avoid": ["sky", "rain"]
+    }
   },
   {
     "name": "02_double_meaning_python_code",
-    "script": "Developers write clean Python automation scripts to process data pipelines faster.",
-    "aspect_ratios": ["16:9"],
-    "style": "tech workspace, screen code",
-    "avoid": ["snake", "reptile"]
+    "payload": {
+      "script": "Developers write clean Python automation scripts to process data pipelines faster.",
+      "aspect_ratios": ["16:9"],
+      "style": "tech workspace, screen code",
+      "avoid": ["snake", "reptile"]
+    }
   },
   {
     "name": "03_abstract_metrics_kinetic_card",
-    "script": "Operating costs dropped by 38% after automating video assembly. Strategy and execution drive sustainable growth.",
-    "aspect_ratios": ["16:9", "9:16"],
-    "style": "corporate clean",
-    "avoid": []
+    "payload": {
+      "script": "Operating costs dropped by 38% after automating video assembly. Strategy and execution drive sustainable growth.",
+      "aspect_ratios": ["16:9", "9:16"],
+      "style": "corporate clean",
+      "avoid": []
+    }
   },
   {
     "name": "04_named_person_brand_guardrail",
-    "script": "Leaders at Apple and Microsoft discussed enterprise AI adoption during the annual summit.",
-    "aspect_ratios": ["16:9"],
-    "style": "modern conference",
-    "avoid": ["logo"]
+    "payload": {
+      "script": "Leaders at Apple and Microsoft discussed enterprise AI adoption during the annual summit.",
+      "aspect_ratios": ["16:9"],
+      "style": "modern conference",
+      "avoid": ["logo"]
+    }
   },
   {
     "name": "05_sensitive_news_guardrail",
-    "script": "Communities gathered in a quiet memorial after the tragic floods impacted coastal towns.",
-    "aspect_ratios": ["16:9"],
-    "style": "calm respectful",
-    "avoid": []
+    "payload": {
+      "script": "Communities gathered in a quiet memorial after the tragic floods impacted coastal towns.",
+      "aspect_ratios": ["16:9"],
+      "style": "calm respectful",
+      "avoid": []
+    }
   },
   {
     "name": "06_primary_source_outage_failover",
-    "script": "Renewable solar energy powers modern smart cities across the globe.",
-    "aspect_ratios": ["16:9"],
-    "style": "clean energy",
-    "avoid": [],
-    "simulate_primary_outage": true
+    "payload": {
+      "script": "Renewable solar energy powers modern smart cities across the globe.",
+      "aspect_ratios": ["16:9"],
+      "style": "clean energy",
+      "avoid": [],
+      "simulate_primary_outage": true
+    }
   },
   {
     "name": "07_caller_supplied_scenes_and_hints",
-    "scenes": [
-      {"text": "Data centers run around the clock.", "visual_hint": "server room racks"},
-      {"text": "Teams collaborate across time zones.", "visual_hint": "software engineers office"}
-    ],
-    "aspect_ratios": ["16:9", "1:1"],
-    "style": "modern tech",
-    "avoid": []
+    "payload": {
+      "scenes": [
+        {"text": "Data centers run around the clock.", "visual_hint": "server room racks"},
+        {"text": "Teams collaborate across time zones.", "visual_hint": "software engineers office"}
+      ],
+      "aspect_ratios": ["16:9", "1:1"],
+      "style": "modern tech",
+      "avoid": []
+    }
   },
   {
     "name": "08_hindi_devanagari_script",
-    "script": "भारत में डिजिटल तकनीक तेजी से आगे बढ़ रही है। यह बदलाव शिक्षा और व्यापार को नया रूप दे रहा है।",
-    "voice": "hi-IN-female",
-    "aspect_ratios": ["9:16"],
-    "style": "modern India technology",
-    "avoid": []
+    "payload": {
+      "script": "भारत में डिजिटल तकनीक तेजी से आगे बढ़ रही है। यह बदलाव शिक्षा और व्यापार को नया रूप दे रहा है।",
+      "voice": "hi-IN-female",
+      "aspect_ratios": ["9:16"],
+      "style": "modern India technology",
+      "avoid": []
+    }
   },
   {
     "name": "09_tamil_script",
-    "script": "செயற்கை நுண்ணறிவு தொழில்நுட்பம் நவீன உலகை மாற்றி வருகிறது. இது புதிய வாய்ப்புகளை உருவாக்குகிறது.",
-    "voice": "ta-IN-female",
-    "aspect_ratios": ["9:16"],
-    "style": "innovation technology",
-    "avoid": []
+    "payload": {
+      "script": "செயற்கை நுண்ணறிவு தொழில்நுட்பம் நவீன உலகை மாற்றி வருகிறது. இது புதிய வாய்ப்புகளை உருவாக்குகிறது.",
+      "voice": "ta-IN-female",
+      "aspect_ratios": ["9:16"],
+      "style": "innovation technology",
+      "avoid": []
+    }
   },
   {
     "name": "10_hardcase_empty_script_rejection",
-    "script": "   ",
-    "aspect_ratios": ["16:9"],
-    "style": "modern",
-    "avoid": []
+    "payload": {
+      "script": "   ",
+      "aspect_ratios": ["16:9"],
+      "style": "modern",
+      "avoid": []
+    }
   }
 ]
