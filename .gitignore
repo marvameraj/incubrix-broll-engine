@@ -1,6 +1,10 @@
-.venv/
+﻿.venv/
 .env
+.idea/
 __pycache__/
 *.pyc
 .pytest_cache/
+outputs/
 tmp_uploads/
+batch_results/
+*.db
