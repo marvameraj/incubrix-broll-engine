@@ -1,13 +1,6 @@
-# AI Tooling Disclosure
+# AI & Automation Disclosure
 
-This project was built using AI-assisted software engineering workflows alongside runtime generative AI models.
-
-## 1. Runtime AI Components in the Application
-
-- **Google Gemini (`gemini-2.5-flash`)**: Performs audio transcription, sentence-boundary scene segmentation, contextual disambiguation of double-meaning terms, and safe visual query generation (`app/adapters/providers.py`).
-- **Microsoft Edge Neural TTS (`edge-tts`)**: Converts script text into natural-sounding voiceover narration (`en-IN`, `hi-IN`, `ta-IN`).
-- **OpenCV (`opencv-python-headless`)**: Runs Haar-cascade face detection and edge-saliency analysis for subject-centered `9:16` and `1:1` video cropping (`app/compositor.py`).
-
-## 2. Development AI Assistance
-
-- **AI Coding Assistant (Gemini)**: Used to scaffold FastAPI boilerplate, OpenAPI specification, FFmpeg filter chains, and `pytest` integration tests. All architecture decisions, adapter interfaces, error handling, and test runs were reviewed, executed, and verified locally.
+1. **Automated Speech Recognition (ASR)**: Uses `faster-whisper` (MIT-licensed CTranslate2 implementation of OpenAI Whisper) locally on CPU to transcribe uploaded/linked audio and extract word-level timestamps.
+2. **Text-to-Speech (TTS)**: Default runtime uses local OS speech synthesis (`pyttsx3` / SAPI5 / `espeak-ng`) for deterministic, commercially-safe offline voiceover generation.
+3. **Scene Planning & Footage Selection**: Uses deterministic rule-based semantic disambiguation and strict commercial-license allowlisting against Wikimedia Commons and Internet Archive APIs (optional Gemini 2.5 Flash adapter is available when `LLM_PROVIDER=gemini` and `GEMINI_API_KEY` are configured).
+4. **Relevance Scoring**: Automated VLM scoring is not enabled in the default CPU configuration; `timeline.json` explicitly reports `"relevance_score": "not_scored"` rather than fabricating scores.
