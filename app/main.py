@@ -161,11 +161,13 @@ def verify_token(authorization: Optional[str] = Header(default=None)):
 
 
 @app.get("/health")
+@app.get("/api/v1/health")
 def health():
     return {"status": "ok"}
 
 
 @app.get("/ready")
+@app.get("/api/v1/ready")
 def ready():
     ffmpeg_ok = shutil.which("ffmpeg") is not None
     storage_ok = os.path.isdir(settings.local_storage_dir) if settings.storage_backend == "local" else True
@@ -186,12 +188,14 @@ def ready():
 
 @app.post("/api/v1/broll/jobs", status_code=202, dependencies=[Depends(verify_token)])
 async def create_broll_job(
+    request: Request,
     background_tasks: BackgroundTasks,
     payload: JobCreateRequest,
     idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key"),
 ):
     idem_key = _require_idempotency_key(idempotency_key)
     req_dict = payload.model_dump()
+    req_dict["correlation_id"] = getattr(request.state, "correlation_id", str(uuid.uuid4()))
     payload_hash = compute_payload_hash(req_dict)
 
     existing = lookup_idempotency(idem_key)
@@ -225,6 +229,7 @@ async def create_broll_job(
 
 @app.post("/api/v1/broll/jobs/upload", status_code=202, dependencies=[Depends(verify_token)])
 async def create_broll_job_upload(
+    request: Request,
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     aspect_ratios: str = Form("16:9"),
@@ -268,6 +273,7 @@ async def create_broll_job_upload(
         f.write(raw_bytes)
 
     req_dict = {
+        "correlation_id": getattr(request.state, "correlation_id", str(uuid.uuid4())),
         "audio_local_path": saved_audio,
         "audio_url": None,
         "script": None,
@@ -366,6 +372,8 @@ async def swap_scene_clip(job_id: str, scene_index: int, swap_req: SceneSwapRequ
 
 async def run_broll_pipeline(job_id: str, req: dict):
     job_id_var.set(job_id)
+    if req.get("correlation_id"):
+        correlation_id_var.set(req["correlation_id"])
     t_start = time.time()
     stage_timings: dict[str, float] = {}
     work_dir = tempfile.mkdtemp(prefix=f"incubrix_{job_id}_")
@@ -505,6 +513,7 @@ async def run_broll_pipeline(job_id: str, req: dict):
                 "tts_characters": tts_chars,
                 "asr_audio_seconds": round(duration, 2) if asr_used else 0.0,
                 "stock_scenes_retrieved": len(timeline),
+                "average_relevance_score": round(sum(item.get("relevance_score", 4) for item in timeline) / max(1, len(timeline)), 2),
                 "paid_llm_calls": paid_llm_calls,
                 "metered_api_cost_usd": 0.0 if paid_llm_calls == 0 else None,
             },

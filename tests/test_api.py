@@ -13,6 +13,8 @@ client = TestClient(app)
 def test_health_and_ready():
     assert client.get("/health").status_code == 200
     assert client.get("/ready").status_code == 200
+    assert client.get("/api/v1/health").status_code == 200
+    assert client.get("/api/v1/ready").status_code == 200
 
 
 def test_empty_script_error_format():

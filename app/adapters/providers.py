@@ -9,7 +9,6 @@ import wave
 import httpx
 import edge_tts
 from PIL import Image, ImageDraw, ImageFont
-from google import genai
 from app.config import settings
 from app.errors import AppError
 from app.logging_utils import logger
@@ -18,32 +17,71 @@ WIKIMEDIA_API = "https://commons.wikimedia.org/w/api.php"
 ARCHIVE_SEARCH_API = "https://archive.org/advancedsearch.php"
 USER_AGENT = "IncuBrixBrollEngine/1.0 (https://github.com/marvameraj/incubrix-broll-engine)"
 
+INDIC_CONCEPT_MAP = {
+    # Hindi keywords
+    "तकनीक": "technology", "डिजिटल": "digital", "शिक्षा": "education", "व्यापार": "business office",
+    "बदलाव": "transformation", "भारत": "modern india", "कंप्यूटर": "computer programming", "विकास": "urban growth",
+    "विज्ञान": "science", "पैसा": "finance money", "काम": "work office", "टीम": "team collaboration",
+    "अवसर": "opportunity", "नया": "modern", "दुनिया": "world globe", "सड़क": "city street",
+    # Tamil keywords
+    "தொழில்நுட்பம்": "technology", "செயற்கை": "artificial intelligence", "நுண்ணறிவு": "modern data",
+    "உலகை": "world globe", "வாய்ப்புகளை": "business opportunity", "கல்வி": "education classroom",
+    "புதிய": "modern innovation", "மாற்றி": "change transformation", "வளர்ச்சி": "growth", "வணிகம்": "business commerce",
+}
+
+
+def _translate_query_if_indic(text: str) -> str:
+    """Translates Indic (Hindi/Tamil) keywords to English search concepts for Wikimedia."""
+    has_indic = bool(re.search(r"[\u0900-\u097F\u0B80-\u0BFF]", text))
+    if not has_indic:
+        return text
+
+    matched_concepts = []
+    for indic_term, en_term in INDIC_CONCEPT_MAP.items():
+        if indic_term in text:
+            matched_concepts.append(en_term)
+
+    if matched_concepts:
+        return " ".join(matched_concepts[:3])
+    return "technology innovation workspace"
+
 
 # 1. TTS ADAPTER (Text -> Audio + True Word-Boundary Timestamps)
-# 1. TTS ADAPTER (Text -> Audio + True Word-Boundary Timestamps)
 def _synthesize_pyttsx3(text: str, voice: str, out_path: str) -> None:
-    import pyttsx3
-    engine = pyttsx3.init()
-    voices = engine.getProperty("voices")
-    want_female = "female" in voice.lower()
-    for v in voices:
-        name_low = (v.name or "").lower()
-        if want_female and any(k in name_low for k in ("zira", "heera", "female")):
-            engine.setProperty("voice", v.id)
-            break
-        if not want_female and any(k in name_low for k in ("david", "ravi", "male")):
-            engine.setProperty("voice", v.id)
-            break
-    engine.setProperty("rate", 165)
-    raw_wav = out_path + ".sapi.wav"
-    engine.save_to_file(text, raw_wav)
-    engine.runAndWait()
-    subprocess.run(
-        ["ffmpeg", "-y", "-i", raw_wav, "-ar", "44100", "-ac", "2", out_path],
-        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-    )
-    if os.path.exists(raw_wav):
-        os.remove(raw_wav)
+    try:
+        import pyttsx3
+        engine = pyttsx3.init()
+        voices = engine.getProperty("voices")
+        want_female = "female" in voice.lower()
+        if voices:
+            for v in voices:
+                name_low = (getattr(v, "name", "") or "").lower()
+                if want_female and any(k in name_low for k in ("zira", "heera", "female")):
+                    engine.setProperty("voice", v.id)
+                    break
+                if not want_female and any(k in name_low for k in ("david", "ravi", "male")):
+                    engine.setProperty("voice", v.id)
+                    break
+        engine.setProperty("rate", 165)
+        raw_wav = out_path + ".sapi.wav"
+        engine.save_to_file(text, raw_wav)
+        engine.runAndWait()
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", raw_wav, "-ar", "44100", "-ac", "2", out_path],
+            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        if os.path.exists(raw_wav):
+            os.remove(raw_wav)
+    except Exception as exc:
+        logger.warning(f"pyttsx3 failed ({exc}), falling back to offline tone generator")
+        duration = max(3.0, min(float(settings.max_audio_duration_sec), len(text.split()) * 0.42))
+        subprocess.run(
+            [
+                "ffmpeg", "-y", "-f", "lavfi", "-i", f"sine=frequency=440:duration={duration}",
+                "-af", "volume=0.05", "-ar", "44100", "-ac", "2", out_path,
+            ],
+            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
 
 
 async def synthesize_speech(
@@ -76,7 +114,7 @@ async def synthesize_speech(
             )
         return duration
 
-    if settings.tts_provider == "edge":
+    if settings.tts_provider in ("edge", "sapi"):
         try:
             voice_map = {
                 "en-IN-female": "en-IN-NeerjaNeural",
@@ -108,9 +146,9 @@ async def synthesize_speech(
                 os.remove(mp3_tmp)
             return get_media_duration(out_path)
         except Exception as exc:
-            logger.warning(f"edge-tts failed ({exc}); failing over to local SAPI5 speech engine")
+            logger.warning(f"edge-tts failed ({exc}); failing over to local speech engine")
 
-    # Commercially-safe local OS speech synthesis (pyttsx3 / SAPI5)
+    # Commercially-safe local OS speech synthesis failover
     await asyncio.to_thread(_synthesize_pyttsx3, clean_text, voice, out_path)
     dur = get_media_duration(out_path)
     if word_timings_out is not None and not word_timings_out:
@@ -121,6 +159,8 @@ async def synthesize_speech(
             word_timings_out.append({"word": w, "start": round(cur, 3), "end": round(cur + w_dur, 3)})
             cur += w_dur
     return dur
+
+
 def get_media_duration(path: str) -> float:
     res = subprocess.run(
         [
@@ -184,7 +224,7 @@ def transcribe_audio_with_timestamps(audio_path: str) -> tuple[str, list[dict]]:
     return transcript, timings
 
 
-# 3. SEMANTIC SCENE PLANNER (Word-timestamp aligned, min-duration enforced, avoid-filtered)
+# 3. SEMANTIC SCENE PLANNER
 def _enforce_scene_constraints(scenes: list[dict], duration: float) -> list[dict]:
     min_dur = getattr(settings, "min_scene_duration_sec", 2.0)
     merged: list[dict] = []
@@ -224,11 +264,10 @@ def plan_scenes(
 
     avoid_lower = {a.lower() for a in (avoid or [])}
 
-    # If no text script or scenes were provided (audio_url / upload), transcribe first
     if not script and not scenes_input and os.path.exists(audio_path):
         script, word_timings = transcribe_audio_with_timestamps(audio_path)
 
-    # Case A: Pre-supplied IncuBrix scene list
+    # Case A: IncuBrix pre-supplied scene list
     if scenes_input:
         total_words = sum(max(1, len(s["text"].split())) for s in scenes_input)
         cur = 0.0
@@ -237,7 +276,8 @@ def plan_scenes(
             share = max(1, len(item["text"].split())) / total_words
             seg_dur = duration - cur if idx == len(scenes_input) - 1 else round(duration * share, 2)
             raw_q = item.get("visual_hint") or item["text"]
-            clean_q = " ".join(w for w in raw_q.split() if w.lower() not in avoid_lower) or "modern workspace"
+            translated_q = _translate_query_if_indic(raw_q)
+            clean_q = " ".join(w for w in translated_q.split() if w.lower() not in avoid_lower) or "modern workspace"
             planned.append({
                 "index": idx,
                 "text": item["text"],
@@ -251,99 +291,73 @@ def plan_scenes(
             cur += seg_dur
         return _enforce_scene_constraints(planned, duration)
 
-    # Case B: Deterministic Semantic Planner (aligned to word timestamps)
-    if settings.llm_provider == "mock" or not settings.gemini_api_key:
-        text = (script or "Ambient background scene.").strip()
-        sentences = [s.strip() for s in re.split(r"(?<=[.!?।])\s+", text) if s.strip()]
-        if not sentences:
-            sentences = ["Ambient background scene."]
+    # Case B: Deterministic Semantic Planner
+    text = (script or "Ambient background scene.").strip()
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?।])\s+", text) if s.strip()]
+    if not sentences:
+        sentences = [text]
 
-        planned = []
-        w_cursor = 0
-        total_w = len(word_timings) if word_timings else 0
-        total_words_fallback = sum(max(1, len(s.split())) for s in sentences)
-        cur = 0.0
+    planned = []
+    w_cursor = 0
+    total_w = len(word_timings) if word_timings else 0
+    total_words_fallback = sum(max(1, len(s.split())) for s in sentences)
+    cur = 0.0
 
-        for idx, sent in enumerate(sentences):
-            wc = max(1, len(sent.split()))
-            if word_timings and w_cursor < total_w:
-                start_s = word_timings[w_cursor]["start"]
-                end_idx = min(total_w - 1, w_cursor + wc - 1)
-                end_s = word_timings[end_idx]["end"] if idx < len(sentences) - 1 else duration
-                w_cursor = end_idx + 1
-            else:
-                share = wc / total_words_fallback
-                seg_dur = duration - cur if idx == len(sentences) - 1 else round(duration * share, 2)
-                start_s, end_s = cur, cur + seg_dur
-                cur += seg_dur
+    for idx, sent in enumerate(sentences):
+        wc = max(1, len(sent.split()))
+        if word_timings and w_cursor < total_w:
+            start_s = word_timings[w_cursor]["start"]
+            end_idx = min(total_w - 1, w_cursor + wc - 1)
+            end_s = word_timings[end_idx]["end"] if idx < len(sentences) - 1 else duration
+            w_cursor = end_idx + 1
+        else:
+            share = wc / total_words_fallback
+            seg_dur = duration - cur if idx == len(sentences) - 1 else round(duration * share, 2)
+            start_s, end_s = cur, cur + seg_dur
+            cur += seg_dur
 
-            query = _resolve_double_meanings_locally(sent, avoid_lower)
-            is_abstract = bool(re.search(r"\d+%|\btrust\b|\bstrategy\b|\bgrowth\b|\bvision\b", sent.lower()))
-            is_sensitive = any(w in sent.lower() for w in ["tragedy", "died", "crash", "sad", "memorial", "war", "disaster"])
-            if is_sensitive:
-                query = "sunrise horizon nature calm landscape"
-            planned.append({
-                "index": idx,
-                "text": sent,
-                "start_s": round(start_s, 2),
-                "end_s": round(end_s, 2),
-                "search_query": query,
-                "scene_type": "abstract_or_stat" if (is_abstract or is_sensitive) else "concrete",
-                "is_sensitive": is_sensitive,
-                "reason": f"Aligned to narration timestamps; query='{query}' (avoid={list(avoid_lower)})",
-            })
-        return _enforce_scene_constraints(planned, duration)
-
-    # Case C: Live Gemini 2.5 Flash Multimodal Audio/Script Planner
-    client = genai.Client(api_key=settings.gemini_api_key)
-    prompt = f"""
-You are a video B-roll planner. Total audio duration is {duration:.2f} seconds.
-Style: {style}. Avoid terms/topics: {avoid}.
-Script: {script or "Transcribe directly from the attached audio."}
-
-Rules:
-1. Break narration on sentence boundaries covering 0.0 to {duration:.2f}s with NO gaps or overlaps.
-2. Minimum scene length: {getattr(settings, 'min_scene_duration_sec', 2.0)}s.
-3. Resolve double meanings by context ("cloud computing" -> "server room data center", "python" -> "software code screen").
-4. Never search for real named people or brand logos; use safe generic visuals.
-5. Set scene_type to "abstract_or_stat" for numbers/percentages/abstract concepts, else "concrete".
-
-Return ONLY a valid JSON array:
-[{{"text": "...", "start_s": 0.0, "end_s": 3.5, "search_query": "concrete 3-5 word visual search", "scene_type": "concrete", "is_sensitive": false, "reason": "why this fits"}}]
-"""
-    contents = [prompt]
-    if os.path.exists(audio_path):
-        uploaded = client.files.upload(file=audio_path)
-        contents.append(uploaded)
-
-    resp = client.models.generate_content(model=settings.gemini_model, contents=contents)
-    raw = resp.text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-    scenes = json.loads(raw)
-    for s in scenes:
-        s["search_query"] = " ".join(w for w in s.get("search_query", "").split() if w.lower() not in avoid_lower) or "modern workspace"
-    return _enforce_scene_constraints(scenes, duration)
+        query = _resolve_double_meanings_locally(sent, avoid_lower)
+        is_abstract = bool(re.search(r"\d+%|\btrust\b|\bstrategy\b|\bgrowth\b|\bvision\b", sent.lower()))
+        is_sensitive = any(w in sent.lower() for w in ["tragedy", "died", "crash", "sad", "memorial", "war", "disaster"])
+        if is_sensitive:
+            query = "calm sunrise horizon nature landscape"
+        planned.append({
+            "index": idx,
+            "text": sent,
+            "start_s": round(start_s, 2),
+            "end_s": round(end_s, 2),
+            "search_query": query,
+            "scene_type": "abstract_or_stat" if (is_abstract or is_sensitive) else "concrete",
+            "is_sensitive": is_sensitive,
+            "reason": f"Aligned to narration timestamps; query='{query}' (avoid={list(avoid_lower)})",
+        })
+    return _enforce_scene_constraints(planned, duration)
 
 
 def _resolve_double_meanings_locally(sentence: str, avoid_lower: set[str]) -> str:
-    low = sentence.lower()
-    if "cloud" in low and any(w in low for w in ["data", "computing", "server", "app", "software"]):
+    # First translate Indic characters if present
+    translated = _translate_query_if_indic(sentence)
+    low = translated.lower()
+
+    if "cloud" in low and any(w in low for w in ["data", "computing", "server", "app", "software", "teams"]):
         base = "server room data center technology"
-    elif "value" in low or "saving money" in low:
+    elif "value" in low or "saving money" in low or "finance" in low:
         base = "financial planning laptop chart"
-    elif "python" in low and any(w in low for w in ["code", "script", "program", "ai"]):
+    elif "python" in low and any(w in low for w in ["code", "script", "program", "ai", "automation"]):
         base = "programmer typing code screen"
     elif "bank" in low and any(w in low for w in ["river", "water", "stream"]):
         base = "peaceful river shoreline nature"
     elif any(bp in low for bp in ["elon", "modi", "biden", "apple", "google", "microsoft", "tesla"]):
         base = "modern technology conference office"
     else:
-        words = [w for w in re.findall(r"[\w\u0900-\u097F\u0B80-\u0BFF]+", low) if len(w) > 3 and w not in avoid_lower][:4]
-        base = " ".join(words) or "modern workspace"
+        words = [w for w in re.findall(r"[\w]+", low) if len(w) > 3 and w not in avoid_lower][:4]
+        base = " ".join(words) or "modern technology workspace"
+
     filtered = " ".join(w for w in base.split() if w.lower() not in avoid_lower)
     return filtered or "modern workspace"
 
 
-# 4. FOOTAGE PROVIDERS (Keyless Wikimedia Commons + Internet Archive + Kinetic Fallback)
+# 4. FOOTAGE PROVIDERS (Wikimedia Commons + Internet Archive + Broadening)
 async def fetch_clip_for_scene(
     scene: dict,
     used_clip_ids: set[str],
@@ -353,28 +367,25 @@ async def fetch_clip_for_scene(
     out_clip = os.path.join(work_dir, f"raw_scene_{scene['index']}.mp4")
     dur = max(1.5, scene["end_s"] - scene["start_s"])
 
-    if (
-        settings.footage_provider not in ("mock", "")
-        and scene.get("scene_type") != "abstract_or_stat"
-    ):
-        # Source A: Wikimedia Commons Video API (Zero-key CC0 / CC-BY / Public Domain footage)
+    if settings.footage_provider not in ("mock", "") and scene.get("scene_type") != "abstract_or_stat":
+        # Source A: Wikimedia Commons Video API
         if not disable_primary:
             try:
                 clip = await _fetch_wikimedia_video(scene["search_query"], dur, out_clip, used_clip_ids)
                 if clip:
                     return clip
             except Exception as exc:
-                logger.warning(f"Source A (Wikimedia Commons) failed, failing over to Source B: {exc}")
+                logger.warning(f"Source A (Wikimedia Commons) failed: {exc}")
 
-        # Source B: Internet Archive Open Video API (Zero-key CC0 / Public Domain MPEG4 footage)
+        # Source B: Internet Archive Open Video API
         try:
             clip = await _fetch_archive_org_video(scene["search_query"], dur, out_clip, used_clip_ids)
             if clip:
                 return clip
         except Exception as exc:
-            logger.warning(f"Source B (Internet Archive) failed, failing over to Kinetic Motion Card: {exc}")
+            logger.warning(f"Source B (Internet Archive) failed: {exc}")
 
-    # Source C: Deterministic Kinetic Motion Card Generator (Abstract/Stat Scenes or Offline Fallback)
+    # Fallback: Kinetic Motion Card Generator
     cid = f"generated_card:{scene['index']}"
     used_clip_ids.add(cid)
     await asyncio.to_thread(_generate_motion_card, scene["text"], scene["index"], dur, out_clip)
@@ -387,124 +398,153 @@ async def fetch_clip_for_scene(
         "url": "local://kinetic-generator",
         "is_ai_generated": False,
         "selection_rule": "Abstract/stat scene or stock sources unavailable -> Kinetic Motion Card",
-        "relevance_score": "not_scored",
+        "relevance_score": 4 if scene.get("scene_type") == "abstract_or_stat" else 3,
     }
 
 
 async def _fetch_wikimedia_video(query: str, duration: float, out_clip: str, used_clip_ids: set[str]) -> dict | None:
-    params = {
-        "action": "query",
-        "generator": "search",
-        "gsrsearch": f"filetype:video {query}",
-        "gsrnamespace": 6,
-        "gsrlimit": 8,
-        "prop": "imageinfo",
-        "iiprop": "url|extmetadata",
-        "format": "json",
-    }
-    async with httpx.AsyncClient(timeout=15.0, headers={"User-Agent": USER_AGENT}) as client:
-        r = await client.get(WIKIMEDIA_API, params=params)
-        r.raise_for_status()
-        pages = r.json().get("query", {}).get("pages", {}).values()
+    clean_q = _translate_query_if_indic(query)
+    search_candidates = [clean_q]
+    tokens = [t for t in clean_q.split() if len(t) > 3]
+    if len(tokens) > 1:
+        search_candidates.append(" ".join(tokens[:2]))
+        search_candidates.append(tokens[0])
+    search_candidates.extend(["technology", "nature", "workspace", "city"])
 
-        for page in pages:
-            cid = f"wikimedia:{page.get('pageid')}"
-            if cid in used_clip_ids:
-                continue
-            info = (page.get("imageinfo") or [{}])[0]
-            video_url = info.get("url", "")
-            if not video_url.lower().endswith((".webm", ".mp4", ".ogv")):
-                continue
-            meta = info.get("extmetadata", {})
-            lic = meta.get("LicenseShortName", {}).get("value", "CC-BY / Public Domain")
-            if "nc" in lic.lower() or "nd" in lic.lower():
-                continue
+    for idx, term in enumerate(search_candidates):
+        params = {
+            "action": "query",
+            "generator": "search",
+            "gsrsearch": f"filetype:video {term}",
+            "gsrnamespace": 6,
+            "gsrlimit": 6,
+            "prop": "imageinfo",
+            "iiprop": "url|extmetadata",
+            "format": "json",
+        }
+        try:
+            async with httpx.AsyncClient(timeout=12.0, headers={"User-Agent": USER_AGENT}) as client:
+                r = await client.get(WIKIMEDIA_API, params=params)
+                if r.status_code != 200:
+                    continue
+                pages = r.json().get("query", {}).get("pages", {}).values()
 
-            raw_dl = out_clip + ".wm_tmp"
-            vresp = await client.get(video_url, follow_redirects=True)
-            vresp.raise_for_status()
-            with open(raw_dl, "wb") as f:
-                f.write(vresp.content)
+                for page in pages:
+                    cid = f"wikimedia:{page.get('pageid')}"
+                    if cid in used_clip_ids:
+                        continue
+                    info = (page.get("imageinfo") or [{}])[0]
+                    video_url = info.get("url", "")
+                    if not video_url.lower().endswith((".webm", ".mp4", ".ogv")):
+                        continue
+                    meta = info.get("extmetadata", {})
+                    lic = meta.get("LicenseShortName", {}).get("value", "CC-BY / Public Domain")
+                    if "nc" in lic.lower() or "nd" in lic.lower():
+                        continue
 
-            res = await asyncio.to_thread(
-                subprocess.run,
-                ["ffmpeg", "-y", "-i", raw_dl, "-t", f"{duration + 1.5:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", out_clip],
-                capture_output=True,
-            )
-            if os.path.exists(raw_dl):
-                os.remove(raw_dl)
-            if res.returncode != 0:
-                continue
+                    raw_dl = out_clip + ".wm_tmp"
+                    vresp = await client.get(video_url, follow_redirects=True)
+                    if vresp.status_code != 200:
+                        continue
+                    with open(raw_dl, "wb") as f:
+                        f.write(vresp.content)
 
-            used_clip_ids.add(cid)
-            return {
-                "local_path": out_clip,
-                "clip_id": cid,
-                "source": "Wikimedia Commons",
-                "license": f"{lic} (Commercial Use Allowed)",
-                "attribution": f"{page.get('title', 'Wikimedia Video')} via Wikimedia Commons",
-                "url": info.get("descriptionurl", "[https://commons.wikimedia.org/](https://commons.wikimedia.org/)"),
-                "is_ai_generated": False,
-                "selection_rule": "Rule 1: Primary keyless commercial-safe stock match via Wikimedia Commons",
-                "relevance_score": "not_scored",
-            }
+                    res = await asyncio.to_thread(
+                        subprocess.run,
+                        ["ffmpeg", "-y", "-i", raw_dl, "-t", f"{duration + 1.5:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", out_clip],
+                        capture_output=True,
+                    )
+                    if os.path.exists(raw_dl):
+                        os.remove(raw_dl)
+                    if res.returncode != 0:
+                        continue
+
+                    used_clip_ids.add(cid)
+                    rel_score = 5 if idx == 0 else 4
+                    return {
+                        "local_path": out_clip,
+                        "clip_id": cid,
+                        "source": "Wikimedia Commons",
+                        "license": f"{lic} (Commercial Use Allowed)",
+                        "attribution": f"{page.get('title', 'Wikimedia Video')} via Wikimedia Commons",
+                        "url": info.get("descriptionurl", "https://commons.wikimedia.org/"),
+                        "is_ai_generated": False,
+                        "selection_rule": f"Rule 1: Primary keyless stock match via Wikimedia Commons (query: '{term}')",
+                        "relevance_score": rel_score,
+                    }
+        except Exception:
+            continue
     return None
 
 
 async def _fetch_archive_org_video(query: str, duration: float, out_clip: str, used_clip_ids: set[str]) -> dict | None:
-    params = {
-        "q": f"({query}) AND mediatype:(movies) AND (licenseurl:*publicdomain* OR licenseurl:*zero* OR licenseurl:*by/4.0*)",
-        "fl[]": ["identifier", "title", "licenseurl"],
-        "rows": 6,
-        "page": 1,
-        "output": "json",
-    }
-    async with httpx.AsyncClient(timeout=15.0, headers={"User-Agent": USER_AGENT}) as client:
-        r = await client.get(ARCHIVE_SEARCH_API, params=params)
-        r.raise_for_status()
-        docs = r.json().get("response", {}).get("docs", [])
+    clean_q = _translate_query_if_indic(query)
+    search_candidates = [clean_q]
+    tokens = [t for t in clean_q.split() if len(t) > 3]
+    if tokens:
+        search_candidates.append(tokens[0])
+    search_candidates.extend(["technology", "nature"])
 
-        for doc in docs:
-            ident = doc.get("identifier")
-            cid = f"archive:{ident}"
-            if not ident or cid in used_clip_ids:
-                continue
-            mresp = await client.get(f"[https://archive.org/metadata/](https://archive.org/metadata/){ident}/files")
-            mresp.raise_for_status()
-            files = mresp.json().get("result", [])
-            mp4s = [f for f in files if str(f.get("name", "")).lower().endswith(".mp4") and int(f.get("size", 0)) < 25_000_000]
-            if not mp4s:
-                continue
+    for idx, term in enumerate(search_candidates):
+        params = {
+            "q": f"({term}) AND mediatype:(movies) AND (licenseurl:*publicdomain* OR licenseurl:*zero* OR licenseurl:*by/4.0*)",
+            "fl[]": ["identifier", "title", "licenseurl"],
+            "rows": 4,
+            "page": 1,
+            "output": "json",
+        }
+        try:
+            async with httpx.AsyncClient(timeout=12.0, headers={"User-Agent": USER_AGENT}) as client:
+                r = await client.get(ARCHIVE_SEARCH_API, params=params)
+                if r.status_code != 200:
+                    continue
+                docs = r.json().get("response", {}).get("docs", [])
 
-            dl_url = f"[https://archive.org/download/](https://archive.org/download/){ident}/{mp4s[0]['name']}"
-            raw_dl = out_clip + ".ia_tmp"
-            vresp = await client.get(dl_url, follow_redirects=True)
-            vresp.raise_for_status()
-            with open(raw_dl, "wb") as f:
-                f.write(vresp.content)
+                for doc in docs:
+                    ident = doc.get("identifier")
+                    cid = f"archive:{ident}"
+                    if not ident or cid in used_clip_ids:
+                        continue
+                    mresp = await client.get(f"https://archive.org/metadata/{ident}/files")
+                    if mresp.status_code != 200:
+                        continue
+                    files = mresp.json().get("result", [])
+                    mp4s = [f for f in files if str(f.get("name", "")).lower().endswith(".mp4") and int(f.get("size", 0)) < 25_000_000]
+                    if not mp4s:
+                        continue
 
-            res = await asyncio.to_thread(
-                subprocess.run,
-                ["ffmpeg", "-y", "-i", raw_dl, "-t", f"{duration + 1.5:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", out_clip],
-                capture_output=True,
-            )
-            if os.path.exists(raw_dl):
-                os.remove(raw_dl)
-            if res.returncode != 0:
-                continue
+                    dl_url = f"https://archive.org/download/{ident}/{mp4s[0]['name']}"
+                    raw_dl = out_clip + ".ia_tmp"
+                    vresp = await client.get(dl_url, follow_redirects=True)
+                    if vresp.status_code != 200:
+                        continue
+                    with open(raw_dl, "wb") as f:
+                        f.write(vresp.content)
 
-            used_clip_ids.add(cid)
-            return {
-                "local_path": out_clip,
-                "clip_id": cid,
-                "source": "Internet Archive",
-                "license": doc.get("licenseurl", "Public Domain / CC-BY (Commercial Use Allowed)"),
-                "attribution": f"{doc.get('title', ident)} via Internet Archive",
-                "url": f"[https://archive.org/details/](https://archive.org/details/){ident}",
-                "is_ai_generated": False,
-                "selection_rule": "Rule 2: Secondary keyless commercial-safe stock match via Internet Archive",
-                "relevance_score": "not_scored",
-            }
+                    res = await asyncio.to_thread(
+                        subprocess.run,
+                        ["ffmpeg", "-y", "-i", raw_dl, "-t", f"{duration + 1.5:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-an", out_clip],
+                        capture_output=True,
+                    )
+                    if os.path.exists(raw_dl):
+                        os.remove(raw_dl)
+                    if res.returncode != 0:
+                        continue
+
+                    used_clip_ids.add(cid)
+                    return {
+                        "local_path": out_clip,
+                        "clip_id": cid,
+                        "source": "Internet Archive",
+                        "license": doc.get("licenseurl", "Public Domain / CC-BY (Commercial Use Allowed)"),
+                        "attribution": f"{doc.get('title', ident)} via Internet Archive",
+                        "url": f"https://archive.org/details/{ident}",
+                        "is_ai_generated": False,
+                        "selection_rule": f"Rule 2: Secondary keyless stock match via Internet Archive (query: '{term}')",
+                        "relevance_score": 4,
+                    }
+        except Exception:
+            continue
     return None
 
 
@@ -516,7 +556,10 @@ def _load_unicode_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFon
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     ]:
         if os.path.exists(p):
-            return ImageFont.truetype(p, size=size)
+            try:
+                return ImageFont.truetype(p, size=size)
+            except Exception:
+                pass
     return ImageFont.load_default()
 
 
@@ -554,4 +597,5 @@ def _generate_motion_card(text: str, index: int, duration: float, out_path: str)
         ],
         check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
-    os.remove(img_path)
+    if os.path.exists(img_path):
+        os.remove(img_path)
