@@ -1,168 +1,539 @@
-openapi: 3.1.0
-info:
-  title: IncuBrix Script & Voiceover to B-Roll Engine
-  version: 1.0.0
-  description: Asynchronous pipeline converting scripts, scene lists, or voiceover audio into multi-aspect-ratio B-roll videos with synced captions, timeline metadata, and single-scene swap support.
-servers:
-  - url: http://localhost:8000
-    description: Local / Docker Compose server
-paths:
-  /health:
-    get:
-      summary: Liveness probe
-      responses:
-        "200":
-          description: Service is alive
-  /ready:
-    get:
-      summary: Readiness probe
-      responses:
-        "200":
-          description: Service dependencies ready
-  /api/v1/broll/jobs:
-    post:
-      summary: Create an asynchronous B-roll generation job from script, scenes, or audio_url
-      parameters:
-        - name: Idempotency-Key
-          in: header
-          required: false
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/JobCreateRequest"
-      responses:
-        "202":
-          description: Job accepted and queued
-        "400":
-          description: Validation error
-        "429":
-          description: Rate limit exceeded
-  /api/v1/broll/jobs/upload:
-    post:
-      summary: Create an asynchronous B-roll job from an uploaded audio file (.mp3, .wav, .m4a)
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file]
-              properties:
-                file:
-                  type: string
-                  format: binary
-                aspect_ratios:
-                  type: string
-                  default: "16:9"
-                style:
-                  type: string
-                burn_in:
-                  type: boolean
-                  default: true
-      responses:
-        "202":
-          description: Upload accepted and queued
-        "400":
-          description: Unsupported file type or corrupted media
-  /api/v1/jobs/{job_id}:
-    get:
-      summary: Poll job status, progress, and output artifact URLs
-      parameters:
-        - name: job_id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Job status and result links
-        "404":
-          description: Job not found
-  /api/v1/broll/jobs/{job_id}/scenes/{scene_index}/swap:
-    post:
-      summary: Swap a single scene clip and re-render only the affected segment
-      parameters:
-        - name: job_id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: scene_index
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                visual_hint:
-                  type: string
-                new_query:
-                  type: string
-      responses:
-        "200":
-          description: Scene swapped and final video re-assembled
-        "400":
-          description: Invalid scene index or job not ready
-components:
-  schemas:
-    JobCreateRequest:
-      type: object
-      properties:
-        audio_url:
-          type: string
-          nullable: true
-        script:
-          type: string
-          nullable: true
-        scenes:
-          type: array
-          nullable: true
-          items:
-            type: object
-            required: [text]
-            properties:
-              text:
-                type: string
-              visual_hint:
-                type: string
-                nullable: true
-        voice:
-          type: string
-          default: en-IN-female
-        aspect_ratios:
-          type: array
-          items:
-            type: string
-            enum: ["16:9", "9:16", "1:1"]
-          default: ["16:9"]
-        style:
-          type: string
-          default: "bright, modern, real-world footage"
-        avoid:
-          type: array
-          items:
-            type: string
-        captions:
-          type: object
-          properties:
-            burn_in:
-              type: boolean
-              default: true
-            srt:
-              type: boolean
-              default: true
-        callback_url:
-          type: string
-          nullable: true
-        simulate_primary_outage:
-          type: boolean
-          default: false
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "IncuBrix Script & Voiceover to B-Roll Engine",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "summary": "Ready",
+        "operationId": "ready_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/broll/jobs": {
+      "post": {
+        "summary": "Create Broll Job",
+        "operationId": "create_broll_job_api_v1_broll_jobs_post",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/broll/jobs/upload": {
+      "post": {
+        "summary": "Create Broll Job Upload",
+        "operationId": "create_broll_job_upload_api_v1_broll_jobs_upload_post",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_create_broll_job_upload_api_v1_broll_jobs_upload_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "summary": "Get Job Status",
+        "operationId": "get_job_status_api_v1_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/broll/jobs/{job_id}/scenes/{scene_index}/swap": {
+      "post": {
+        "summary": "Swap Scene Clip",
+        "description": "Advanced feature: replaces a single scene clip and updates SRT + affected segments.",
+        "operationId": "swap_scene_clip_api_v1_broll_jobs__job_id__scenes__scene_index__swap_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "scene_index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Scene Index"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SceneSwapRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_create_broll_job_upload_api_v1_broll_jobs_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          },
+          "aspect_ratios": {
+            "type": "string",
+            "title": "Aspect Ratios",
+            "default": "16:9"
+          },
+          "style": {
+            "type": "string",
+            "title": "Style",
+            "default": "bright, modern, real-world footage"
+          },
+          "burn_in": {
+            "type": "boolean",
+            "title": "Burn In",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_create_broll_job_upload_api_v1_broll_jobs_upload_post"
+      },
+      "CaptionsConfig": {
+        "properties": {
+          "burn_in": {
+            "type": "boolean",
+            "title": "Burn In",
+            "default": true
+          },
+          "srt": {
+            "type": "boolean",
+            "title": "Srt",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "CaptionsConfig"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "JobCreateRequest": {
+        "properties": {
+          "audio_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Url"
+          },
+          "script": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Script"
+          },
+          "scenes": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SceneInput"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenes"
+          },
+          "voice": {
+            "type": "string",
+            "title": "Voice",
+            "default": "en-IN-female"
+          },
+          "aspect_ratios": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Aspect Ratios"
+          },
+          "style": {
+            "type": "string",
+            "title": "Style",
+            "default": "bright, modern, real-world footage"
+          },
+          "avoid": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Avoid"
+          },
+          "captions": {
+            "$ref": "#/components/schemas/CaptionsConfig"
+          },
+          "callback_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callback Url"
+          },
+          "simulate_primary_outage": {
+            "type": "boolean",
+            "title": "Simulate Primary Outage",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "JobCreateRequest"
+      },
+      "SceneInput": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "visual_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visual Hint"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "SceneInput"
+      },
+      "SceneSwapRequest": {
+        "properties": {
+          "visual_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visual Hint"
+          },
+          "new_query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Query"
+          }
+        },
+        "type": "object",
+        "title": "SceneSwapRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
