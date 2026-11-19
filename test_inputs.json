@@ -1,45 +1,78 @@
 [
   {
     "name": "01_double_meaning_cloud_value",
-    "payload": {
-      "script": "Modern cloud computing powers global startups. True value comes from reliable infrastructure rather than hype.",
-      "aspect_ratios": ["16:9", "9:16"],
-      "style": "bright, modern, real-world footage",
-      "avoid": ["people's faces"],
-      "captions": {"burn_in": true, "srt": true}
-    }
+    "script": "Modern cloud computing teams deliver real business value every day. Engineering reliability builds lasting customer trust.",
+    "aspect_ratios": ["16:9", "9:16"],
+    "style": "bright, modern, real-world footage",
+    "avoid": ["sky", "rain"]
   },
   {
-    "name": "02_abstract_and_stats",
-    "payload": {
-      "script": "Trust is earned slowly across every customer interaction. Enterprise sales grew 40% in 2025.",
-      "aspect_ratios": ["16:9"],
-      "captions": {"burn_in": true, "srt": true}
-    }
+    "name": "02_double_meaning_python_code",
+    "script": "Developers write clean Python automation scripts to process data pipelines faster.",
+    "aspect_ratios": ["16:9"],
+    "style": "tech workspace, screen code",
+    "avoid": ["snake", "reptile"]
   },
   {
-    "name": "03_incubrix_scene_list",
-    "payload": {
-      "scenes": [
-        {"text": "Welcome to our developer tutorial on Python automation.", "visual_hint": "software engineer coding python on laptop"},
-        {"text": "Deploy your containers with a single command.", "visual_hint": "data center server racks"}
-      ],
-      "aspect_ratios": ["16:9", "1:1"]
-    }
+    "name": "03_abstract_metrics_kinetic_card",
+    "script": "Operating costs dropped by 38% after automating video assembly. Strategy and execution drive sustainable growth.",
+    "aspect_ratios": ["16:9", "9:16"],
+    "style": "corporate clean",
+    "avoid": []
   },
   {
-    "name": "04_provider_outage_resilience",
-    "payload": {
-      "script": "Even when an external API goes down, our fallback engine keeps rendering seamlessly.",
-      "aspect_ratios": ["16:9"],
-      "simulate_primary_outage": true
-    }
+    "name": "04_named_person_brand_guardrail",
+    "script": "Leaders at Apple and Microsoft discussed enterprise AI adoption during the annual summit.",
+    "aspect_ratios": ["16:9"],
+    "style": "modern conference",
+    "avoid": ["logo"]
   },
   {
-    "name": "05_hardcase_empty_script",
-    "payload": {
-      "script": "   ",
-      "aspect_ratios": ["16:9"]
-    }
+    "name": "05_sensitive_news_guardrail",
+    "script": "Communities gathered in a quiet memorial after the tragic floods impacted coastal towns.",
+    "aspect_ratios": ["16:9"],
+    "style": "calm respectful",
+    "avoid": []
+  },
+  {
+    "name": "06_primary_source_outage_failover",
+    "script": "Renewable solar energy powers modern smart cities across the globe.",
+    "aspect_ratios": ["16:9"],
+    "style": "clean energy",
+    "avoid": [],
+    "simulate_primary_outage": true
+  },
+  {
+    "name": "07_caller_supplied_scenes_and_hints",
+    "scenes": [
+      {"text": "Data centers run around the clock.", "visual_hint": "server room racks"},
+      {"text": "Teams collaborate across time zones.", "visual_hint": "software engineers office"}
+    ],
+    "aspect_ratios": ["16:9", "1:1"],
+    "style": "modern tech",
+    "avoid": []
+  },
+  {
+    "name": "08_hindi_devanagari_script",
+    "script": "भारत में डिजिटल तकनीक तेजी से आगे बढ़ रही है। यह बदलाव शिक्षा और व्यापार को नया रूप दे रहा है।",
+    "voice": "hi-IN-female",
+    "aspect_ratios": ["9:16"],
+    "style": "modern India technology",
+    "avoid": []
+  },
+  {
+    "name": "09_tamil_script",
+    "script": "செயற்கை நுண்ணறிவு தொழில்நுட்பம் நவீன உலகை மாற்றி வருகிறது. இது புதிய வாய்ப்புகளை உருவாக்குகிறது.",
+    "voice": "ta-IN-female",
+    "aspect_ratios": ["9:16"],
+    "style": "innovation technology",
+    "avoid": []
+  },
+  {
+    "name": "10_hardcase_empty_script_rejection",
+    "script": "   ",
+    "aspect_ratios": ["16:9"],
+    "style": "modern",
+    "avoid": []
   }
 ]
