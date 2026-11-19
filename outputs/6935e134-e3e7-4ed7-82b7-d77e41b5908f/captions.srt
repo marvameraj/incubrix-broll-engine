@@ -1,8 +1,0 @@
-1
-00:00:00,000 --> 00:00:02,400
-Modern cloud computing powers global startups.
-
-2
-00:00:02,400 --> 00:00:06,000
-True value comes from reliable infrastructure rather than hype.
-

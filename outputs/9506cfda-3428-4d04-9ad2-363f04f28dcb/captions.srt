@@ -1,8 +1,0 @@
-1
-00:00:00,000 --> 00:00:03,200
-Trust is earned slowly across every customer interaction.
-
-2
-00:00:03,200 --> 00:00:05,600
-Enterprise sales grew 40% in 2025.
-
