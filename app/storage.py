@@ -26,6 +26,17 @@ class StorageManager:
         if settings.s3_bucket not in existing:
             self.s3.create_bucket(Bucket=settings.s3_bucket)
 
+    def check_health(self) -> bool:
+        """Return True only when the configured storage backend is reachable."""
+        try:
+            if self.backend == "s3":
+                self.s3.head_bucket(Bucket=settings.s3_bucket)
+                return True
+            os.makedirs(settings.local_storage_dir, exist_ok=True)
+            return os.path.isdir(settings.local_storage_dir) and os.access(settings.local_storage_dir, os.W_OK)
+        except Exception:
+            return False
+
     def save_file(self, local_path: str, object_key: str) -> str:
         if self.backend == "s3":
             self.s3.upload_file(local_path, settings.s3_bucket, object_key)
