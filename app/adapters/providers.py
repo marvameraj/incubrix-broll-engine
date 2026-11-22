@@ -49,7 +49,7 @@ def _is_commercial_archive_license(value: str | None) -> bool:
     normalized = value.lower().rstrip("/")
     if re.search(r"/publicdomain/(?:zero|mark)(?:/|$)", normalized):
         return True
-    return bool(re.search(r"/licenses/by(?:-sa)?/(?:3\\.0|4\\.0)(?:/|$)", normalized))
+    return bool(re.search(r"/licenses/by(?:-sa)?/(?:3\.0|4\.0)(?:/|$)", normalized))
 
 
 def _translate_query_if_indic(text: str) -> str:
