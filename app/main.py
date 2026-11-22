@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 import httpx
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
@@ -164,6 +165,9 @@ def verify_token(authorization: Optional[str] = Header(default=None)):
 @app.get("/api/v1/health")
 def health():
     return {"status": "ok"}
+@app.get("/", include_in_schema=False)
+def studio_ui():
+    return FileResponse("app/static/index.html")
 
 
 @app.get("/ready")

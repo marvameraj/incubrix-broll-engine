@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IncuBrix B-Roll Studio | Script & Voiceover to Video</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0b0f19; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
+    .glass { background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(56, 189, 248, 0.18); backdrop-filter: blur(12px); }
+    .badge-license { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Top Navbar -->
+  <header class="border-b border-slate-800 bg-slate-950/80 sticky top-0 z-20 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-bold text-slate-950 text-lg">IB</div>
+        <div>
+          <h1 class="text-lg font-semibold text-white tracking-tight">IncuBrix B-Roll Engine</h1>
+          <p class="text-xs text-slate-400">Semantic Scene Planning &bull; Commercial-Safe Stock &bull; Multi-Ratio Render</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 text-xs">
+        <span id="healthBadge" class="px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Checking engine...</span>
+        <a href="/docs" target="_blank" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 transition">OpenAPI / Swagger &nearr;</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto w-full px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1">
+    <!-- Left Column: Generator Controls -->
+    <section class="lg:col-span-5 space-y-6">
+      <div class="glass rounded-2xl p-6 shadow-xl space-y-5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-semibold text-white">Create B-Roll Video</h2>
+          <div class="flex rounded-lg bg-slate-900 p-1 text-xs border border-slate-800">
+            <button id="tabText" onclick="switchMode('text')" class="px-3 py-1 rounded-md bg-cyan-500 text-slate-950 font-medium transition">Text Script</button>
+            <button id="tabAudio" onclick="switchMode('audio')" class="px-3 py-1 rounded-md text-slate-400 hover:text-white transition">Audio Upload</button>
+          </div>
+        </div>
+
+        <!-- Text Mode -->
+        <div id="textModeFields" class="space-y-4">
+          <div>
+            <div class="flex justify-between items-center mb-1.5">
+              <label class="text-xs font-medium text-slate-300">Narration Script</label>
+              <button onclick="loadSampleScript()" class="text-xs text-cyan-400 hover:underline">Load Demo Script</button>
+            </div>
+            <textarea id="scriptInput" rows="4" class="w-full rounded-xl bg-slate-900/90 border border-slate-700 px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400" placeholder="Enter narration text...">Modern cloud computing teams deliver real business value every day. Operating costs dropped by 38% after automating video assembly.</textarea>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">Voiceover</label>
+              <select id="voiceSelect" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white">
+                <option value="en-IN-female">English (Female)</option>
+                <option value="en-IN-male">English (Male)</option>
+                <option value="hi-IN-female">Hindi (Female)</option>
+                <option value="ta-IN-female">Tamil (Female)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5">Avoid Keywords</label>
+              <input id="avoidInput" type="text" value="sky, rain" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white" placeholder="e.g. sky, snake" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio Upload Mode -->
+        <div id="audioModeFields" class="hidden space-y-4">
+          <div class="border-2 border-dashed border-slate-700 rounded-xl p-6 text-center hover:border-cyan-400/60 transition">
+            <input id="audioFileInput" type="file" accept=".mp3,.wav,.m4a" class="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-500 file:text-slate-950 hover:file:bg-cyan-400 cursor-pointer" />
+            <p class="text-xs text-slate-500 mt-2">Supports MP3, WAV, M4A (up to 10 min) &bull; Transcribed via Whisper ASR</p>
+          </div>
+        </div>
+
+        <!-- Shared Options -->
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1.5">Visual Style</label>
+          <input id="styleInput" type="text" value="bright, modern, real-world footage" class="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-white" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-2">Output Aspect Ratios</label>
+          <div class="flex gap-3 text-xs">
+            <label class="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-lg border border-slate-700 cursor-pointer">
+              <input type="checkbox" value="16:9" class="ratio-cb accent-cyan-400" checked /> 16:9 Landscape
+            </label>
+            <label class="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-lg border border-slate-700 cursor-pointer">
+              <input type="checkbox" value="9:16" class="ratio-cb accent-cyan-400" checked /> 9:16 Vertical
+            </label>
+            <label class="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-lg border border-slate-700 cursor-pointer">
+              <input type="checkbox" value="1:1" class="ratio-cb accent-cyan-400" /> 1:1 Square
+            </label>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <input id="burnInCheck" type="checkbox" class="accent-cyan-400" checked /> Burn-in synced captions
+          </label>
+          <label class="flex items-center gap-2 text-xs text-amber-300 cursor-pointer">
+            <input id="outageCheck" type="checkbox" class="accent-amber-400" /> Test primary source failover
+          </label>
+        </div>
+
+        <button id="generateBtn" onclick="submitJob()" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-semibold text-sm shadow-lg shadow-cyan-500/20 transition">
+          Generate B-Roll Video
+        </button>
+
+        <!-- Progress Bar -->
+        <div id="statusBox" class="hidden rounded-xl bg-slate-900/90 border border-slate-800 p-4 space-y-2">
+          <div class="flex justify-between text-xs">
+            <span id="statusText" class="text-cyan-400 font-medium">Queued...</span>
+            <span id="progressPct" class="text-slate-400">0%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+            <div id="progressBar" class="bg-gradient-to-r from-cyan-400 to-blue-500 h-2 transition-all duration-500" style="width: 5%"></div>
+          </div>
+          <p id="jobIdLabel" class="text-[11px] text-slate-500 font-mono truncate"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Video Player, Timeline & Licenses -->
+    <section class="lg:col-span-7 space-y-6">
+      <!-- Empty State -->
+      <div id="emptyState" class="glass rounded-2xl p-12 text-center space-y-3">
+        <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto text-xl">&#9654;</div>
+        <h3 class="text-base font-semibold text-white">Ready to Render</h3>
+        <p class="text-xs text-slate-400 max-w-md mx-auto">Submit a narration script or audio file on the left to generate multi-aspect-ratio B-roll videos with verified commercial-safe stock clips, synced SRT captions, and per-scene swap controls.</p>
+      </div>
+
+      <!-- Results Container -->
+      <div id="resultsPanel" class="hidden space-y-6">
+        <!-- Video Players -->
+        <div class="glass rounded-2xl p-6 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-base font-semibold text-white">Rendered Outputs</h3>
+            <div id="downloadLinks" class="flex flex-wrap gap-2 text-xs"></div>
+          </div>
+          <div id="videoGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+
+        <!-- Manifest Metrics Strip -->
+        <div id="manifestStrip" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+
+        <!-- Scene Breakdown & One-Click Swap -->
+        <div class="glass rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold text-white">Scene Timeline &amp; License Audit</h3>
+            <span class="text-xs text-slate-400">Swap any scene without re-rendering full job</span>
+          </div>
+          <div id="timelineList" class="space-y-3"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let currentMode = 'text';
+    let activeJobId = null;
+
+    async function checkHealth() {
+      try {
+        const res = await fetch('/ready');
+        const data = await res.json();
+        const badge = document.getElementById('healthBadge');
+        if (data.status === 'ready') {
+          badge.innerHTML = `<span class="text-emerald-400">&#9679;</span> Ready &bull; TTS: ${data.providers.tts} &bull; Stock: ${data.providers.footage}`;
+        }
+      } catch (e) {
+        document.getElementById('healthBadge').textContent = 'Offline';
+      }
+    }
+    checkHealth();
+
+    function switchMode(mode) {
+      currentMode = mode;
+      document.getElementById('textModeFields').classList.toggle('hidden', mode !== 'text');
+      document.getElementById('audioModeFields').classList.toggle('hidden', mode !== 'audio');
+      document.getElementById('tabText').className = mode === 'text'
+        ? 'px-3 py-1 rounded-md bg-cyan-500 text-slate-950 font-medium transition'
+        : 'px-3 py-1 rounded-md text-slate-400 hover:text-white transition';
+      document.getElementById('tabAudio').className = mode === 'audio'
+        ? 'px-3 py-1 rounded-md bg-cyan-500 text-slate-950 font-medium transition'
+        : 'px-3 py-1 rounded-md text-slate-400 hover:text-white transition';
+    }
+
+    function loadSampleScript() {
+      document.getElementById('scriptInput').value =
+        "Modern cloud computing teams deliver real business value every day. Operating costs dropped by 38% after automating video assembly. Developers write clean Python automation scripts to ship faster.";
+    }
+
+    async function submitJob() {
+      const btn = document.getElementById('generateBtn');
+      const ratios = Array.from(document.querySelectorAll('.ratio-cb:checked')).map(cb => cb.value);
+      if (!ratios.length) return alert('Select at least one aspect ratio.');
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      const idemKey = 'ui-' + crypto.randomUUID();
+
+      try {
+        let resp;
+        if (currentMode === 'text') {
+          const avoid = document.getElementById('avoidInput').value.split(',').map(s => s.trim()).filter(Boolean);
+          resp = await fetch('/api/v1/broll/jobs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idemKey },
+            body: JSON.stringify({
+              script: document.getElementById('scriptInput').value,
+              voice: document.getElementById('voiceSelect').value,
+              aspect_ratios: ratios,
+              style: document.getElementById('styleInput').value,
+              avoid,
+              captions: { burn_in: document.getElementById('burnInCheck').checked, srt: true },
+              simulate_primary_outage: document.getElementById('outageCheck').checked
+            })
+          });
+        } else {
+          const fileInput = document.getElementById('audioFileInput');
+          if (!fileInput.files.length) {
+            btn.disabled = false;
+            btn.textContent = 'Generate B-Roll Video';
+            return alert('Choose an audio file first.');
+          }
+          const fd = new FormData();
+          fd.append('file', fileInput.files[0]);
+          fd.append('aspect_ratios', ratios.join(','));
+          fd.append('style', document.getElementById('styleInput').value);
+          fd.append('burn_in', document.getElementById('burnInCheck').checked);
+          resp = await fetch('/api/v1/broll/jobs/upload', {
+            method: 'POST',
+            headers: { 'Idempotency-Key': idemKey },
+            body: fd
+          });
+        }
+
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error?.message || 'Request failed');
+
+        activeJobId = data.job_id;
+        document.getElementById('statusBox').classList.remove('hidden');
+        document.getElementById('jobIdLabel').textContent = `Job ID: ${activeJobId}`;
+        pollJob(activeJobId);
+      } catch (err) {
+        alert(err.message);
+        btn.disabled = false;
+        btn.textContent = 'Generate B-Roll Video';
+      }
+    }
+
+    async function pollJob(jobId) {
+      const btn = document.getElementById('generateBtn');
+      const timer = setInterval(async () => {
+        const res = await fetch(`/api/v1/jobs/${jobId}`);
+        const job = await res.json();
+        document.getElementById('statusText').textContent = `Status: ${job.status.toUpperCase()}`;
+        document.getElementById('progressPct').textContent = `${job.progress}%`;
+        document.getElementById('progressBar').style.width = `${Math.max(8, job.progress)}%`;
+
+        if (job.status === 'succeeded') {
+          clearInterval(timer);
+          btn.disabled = false;
+          btn.textContent = 'Generate B-Roll Video';
+          renderResults(jobId, job.results);
+        } else if (job.status === 'failed') {
+          clearInterval(timer);
+          btn.disabled = false;
+          btn.textContent = 'Generate B-Roll Video';
+          alert(`Job failed: ${job.error?.code} - ${job.error?.message}`);
+        }
+      }, 2000);
+    }
+
+    async function renderResults(jobId, results) {
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('resultsPanel').classList.remove('hidden');
+
+      const cacheBust = `?t=${Date.now()}`;
+      const videoGrid = document.getElementById('videoGrid');
+      const dlLinks = document.getElementById('downloadLinks');
+      videoGrid.innerHTML = '';
+      dlLinks.innerHTML = '';
+
+      Object.entries(results).forEach(([name, url]) => {
+        dlLinks.innerHTML += `<a href="${url}" target="_blank" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700">${name}</a>`;
+        if (name.endsWith('.mp4')) {
+          videoGrid.innerHTML += `
+            <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 space-y-2">
+              <div class="flex justify-between text-xs text-slate-400"><span>${name}</span><span>H.264 30fps</span></div>
+              <video controls class="w-full rounded-lg max-h-72 bg-black" src="${url}${cacheBust}"></video>
+            </div>`;
+        }
+      });
+
+      const [tlRes, mfRes] = await Promise.all([fetch(results['timeline.json'] + cacheBust), fetch(results['manifest.json'] + cacheBust)]);
+      const timeline = await tlRes.json();
+      const manifest = await mfRes.json();
+
+      document.getElementById('manifestStrip').innerHTML = `
+        <div class="glass rounded-xl p-3.5"><div class="text-[11px] text-slate-400">Turnaround</div><div class="text-base font-semibold text-white mt-0.5">${manifest.timings.turnaround_s}s</div></div>
+        <div class="glass rounded-xl p-3.5"><div class="text-[11px] text-slate-400">Narration</div><div class="text-base font-semibold text-white mt-0.5">${manifest.timings.audio_duration_s}s</div></div>
+        <div class="glass rounded-xl p-3.5"><div class="text-[11px] text-slate-400">API Cost</div><div class="text-base font-semibold text-emerald-400 mt-0.5">$${manifest.measured_usage.metered_api_cost_usd.toFixed(2)}</div></div>
+        <div class="glass rounded-xl p-3.5"><div class="text-[11px] text-slate-400">Commercial Safe</div><div class="text-base font-semibold text-emerald-400 mt-0.5">${manifest.license_summary.all_clips_commercial_safe ? '100% Verified' : 'Check'}</div></div>
+      `;
+
+      const tlEl = document.getElementById('timelineList');
+      tlEl.innerHTML = timeline.map(sc => `
+        <div class="rounded-xl bg-slate-900/90 border border-slate-800 p-4 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs font-mono text-cyan-400">Scene ${sc.scene_index + 1} (${sc.start_s}s &ndash; ${sc.end_s}s)</span>
+            <span class="text-[11px] px-2.5 py-0.5 rounded-full badge-license">${sc.source} &bull; ${sc.license}</span>
+          </div>
+          <p class="text-sm text-white">"${sc.text}"</p>
+          <p class="text-xs text-slate-400">Query: <span class="text-slate-200">${sc.search_query}</span> &bull; <a href="${sc.url}" target="_blank" class="text-cyan-400 hover:underline">Source Link &nearr;</a></p>
+          <div class="flex gap-2 pt-1">
+            <input id="swapQuery_${sc.scene_index}" type="text" placeholder="New visual query to swap clip..." class="flex-1 rounded-lg bg-slate-950 border border-slate-700 px-3 py-1.5 text-xs text-white" />
+            <button onclick="swapScene(${sc.scene_index})" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-xs font-medium text-cyan-300 border border-slate-700 transition">Swap Clip</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function swapScene(idx) {
+      const q = document.getElementById(`swapQuery_${idx}`).value.trim();
+      if (!q) return alert('Enter a new visual query first.');
+      const res = await fetch(`/api/v1/broll/jobs/${activeJobId}/scenes/${idx}/swap`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ new_query: q })
+      });
+      const data = await res.json();
+      if (!res.ok) return alert(data.error?.message || 'Swap failed');
+      renderResults(activeJobId, data.results);
+    }
+  </script>
+</body>
+</html>
