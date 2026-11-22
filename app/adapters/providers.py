@@ -47,12 +47,9 @@ def _is_commercial_archive_license(value: str | None) -> bool:
     if not value:
         return False
     normalized = value.lower().rstrip("/")
-    allowed_suffixes = (
-        "publicdomain/zero", "publicdomain/mark",
-        "licenses/by/3.0", "licenses/by/4.0",
-        "licenses/by-sa/3.0", "licenses/by-sa/4.0",
-    )
-    return any(normalized.endswith(suffix) for suffix in allowed_suffixes)
+    if re.search(r"/publicdomain/(?:zero|mark)(?:/|$)", normalized):
+        return True
+    return bool(re.search(r"/licenses/by(?:-sa)?/(?:3\\.0|4\\.0)(?:/|$)", normalized))
 
 
 def _translate_query_if_indic(text: str) -> str:
