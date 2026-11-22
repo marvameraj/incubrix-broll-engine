@@ -26,11 +26,11 @@
 
 ## 2. Evaluation Suite (`test_inputs.json`) — requires fresh verification
 
-| Case | Scenario | Expected Behavior | Status | Relevance Score |
+| Case | Scenario | Expected Behavior | Current evidence | Relevance Score |
 | :--- | :--- | :--- | :---: | :---: |
-| `01_double_meaning_cloud_value` | Disambiguation (`cloud`, `value`) + `avoid=["sky","rain"]` | Maps to server/data-center visuals; outputs `16:9` & `9:16` | Verified | 5 / 5 |
+| `01_double_meaning_cloud_value` | Disambiguation (`cloud`, `value`) + `avoid=["sky","rain"]` | Maps to server/data-center visuals; outputs `16:9` & `9:16` | Test scenario defined; rerun required | Not independently measured |
 | `02_double_meaning_python_code` | Disambiguation (`Python` -> code, not snake) | Maps to programming workspace visuals | Verified | 5 / 5 |
-| `03_abstract_metrics_kinetic_card` | Percentage statistic (`38%`) + abstract nouns | Routes to high-contrast Kinetic Motion Card | Verified | 4 / 5 |
+| `03_abstract_metrics_kinetic_card` | Percentage statistic (`38%`) + abstract nouns | Routes to high-contrast Kinetic Motion Card | Test scenario defined; rerun required | Not independently measured |
 | `04_named_person_brand_guardrail` | Named brands (`Apple`, `Microsoft`) | Suppresses logo/person search; uses generic conference visual | Verified | 4 / 5 |
 | `05_sensitive_news_guardrail` | Sensitive topic (`memorial`, `floods`) | Triggers warning & calm sunrise/landscape visual | Verified | 4 / 5 |
 | `06_primary_source_outage_failover` | `simulate_primary_outage=true` | Fails over cleanly from Wikimedia to Internet Archive / Card | Verified | 4 / 5 |
@@ -53,7 +53,7 @@
   - **With Gemini Flash 2.5 Planning Enabled** (1 LLM call @ ~400 tokens): **~$0.00015 / minute**.
 - **Concurrency**:
   - Handles **4–6 concurrent rendering pipelines** per standard 4-vCPU 8GB RAM host without queue starvation.
-- **Repeat Clip Rate**: **0.0%** (guaranteed via `used_clip_ids` tracking set).
+- **Repeat Clip Rate**: Duplicate clip IDs are tracked within one generation job; a measured repeat rate requires auditing outputs from real-provider runs.
 
 ---
 
@@ -61,4 +61,4 @@
 
 - **Stock Library Coverage**: While Wikimedia Commons and Internet Archive provide zero-cost, commercial-safe footage, coverage for niche business actions is narrower than commercial libraries like Pexels or Shutterstock. A production deployment would include an optional commercial stock API adapter.
 - **Selective Re-rendering**: The current clip swap re-encodes only the swapped scene segment and re-muxes the audio container in under 3 seconds; a future iteration could utilize GPU-accelerated NVENC encoding for sub-second assembly.
-- **VLM Deep-Scoring**: Offline scoring uses concept & metadata tag overlap; integrating a local quantized SigLIP vision-language model would enable on-device pixel-level scoring.
+- **VLM Deep-Scoring**: Independent vision-language-model scoring is not implemented in this code snapshot. Add genuine VLM evaluation and compare it with human ratings before claiming this capability.
