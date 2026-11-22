@@ -30,6 +30,28 @@ INDIC_CONCEPT_MAP = {
 }
 
 
+def _is_commercial_wikimedia_license(value: str | None) -> bool:
+    """Conservatively allow only recognized CC0, public-domain, CC BY and CC BY-SA licences."""
+    if not value:
+        return False
+    normalized = re.sub(r"[^a-z0-9.]+", " ", value.lower()).strip()
+    if "non commercial" in normalized or "no derivatives" in normalized or "nc" in normalized.split():
+        return False
+    if normalized in {"cc0", "cc0 1.0", "public domain", "pd"}:
+        return True
+    return bool(re.fullmatch(r"cc by(?: sa)? (?:3\.0|4\.0)", normalized))
+
+
+def _is_commercial_archive_license(value: str | None) -> bool:
+    """Allow only explicit public-domain/CC0/CC BY/CC BY-SA 3.0 or 4.0 URLs."""
+    if not value:
+        return False
+    normalized = value.lower().rstrip("/")
+    if re.search(r"/publicdomain/(?:zero|mark)(?:/|$)", normalized):
+        return True
+    return bool(re.search(r"/licenses/by(?:-sa)?/(?:3\.0|4\.0)(?:/|$)", normalized))
+
+
 def _translate_query_if_indic(text: str) -> str:
     """Translates Indic (Hindi/Tamil) keywords to English search concepts for Wikimedia."""
     has_indic = bool(re.search(r"[\u0900-\u097F\u0B80-\u0BFF]", text))
@@ -438,8 +460,8 @@ async def _fetch_wikimedia_video(query: str, duration: float, out_clip: str, use
                     if not video_url.lower().endswith((".webm", ".mp4", ".ogv")):
                         continue
                     meta = info.get("extmetadata", {})
-                    lic = meta.get("LicenseShortName", {}).get("value", "CC-BY / Public Domain")
-                    if "nc" in lic.lower() or "nd" in lic.lower():
+                    lic = meta.get("LicenseShortName", {}).get("value")
+                    if not _is_commercial_wikimedia_license(lic):
                         continue
 
                     raw_dl = out_clip + ".wm_tmp"
@@ -465,7 +487,7 @@ async def _fetch_wikimedia_video(query: str, duration: float, out_clip: str, use
                         "local_path": out_clip,
                         "clip_id": cid,
                         "source": "Wikimedia Commons",
-                        "license": f"{lic} (Commercial Use Allowed)",
+                        "license": lic,
                         "attribution": f"{page.get('title', 'Wikimedia Video')} via Wikimedia Commons",
                         "url": info.get("descriptionurl", "https://commons.wikimedia.org/"),
                         "is_ai_generated": False,
@@ -505,6 +527,9 @@ async def _fetch_archive_org_video(query: str, duration: float, out_clip: str, u
                     cid = f"archive:{ident}"
                     if not ident or cid in used_clip_ids:
                         continue
+                    license_url = doc.get("licenseurl")
+                    if not _is_commercial_archive_license(license_url):
+                        continue
                     mresp = await client.get(f"https://archive.org/metadata/{ident}/files")
                     if mresp.status_code != 200:
                         continue
@@ -536,7 +561,7 @@ async def _fetch_archive_org_video(query: str, duration: float, out_clip: str, u
                         "local_path": out_clip,
                         "clip_id": cid,
                         "source": "Internet Archive",
-                        "license": doc.get("licenseurl", "Public Domain / CC-BY (Commercial Use Allowed)"),
+                        "license": license_url,
                         "attribution": f"{doc.get('title', ident)} via Internet Archive",
                         "url": f"https://archive.org/details/{ident}",
                         "is_ai_generated": False,

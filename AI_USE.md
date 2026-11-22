@@ -28,8 +28,8 @@ The following AI models and engines are embedded inside the service runtime:
    - **Engine**: Rule-based keyword disambiguation + Indic-to-English translation mapping (optional Gemini 2.5 Flash adapter supported via `LLM_PROVIDER=gemini`).
    - **Usage**: Resolves double meanings (e.g. *cloud* -> server data center, *python* -> code screen), maps Hindi/Tamil queries to English concepts, and enforces safety guardrails on sensitive events and named brands.
 4. **Automated Relevance Scoring**:
-   - **Engine**: Metadata & concept overlap scoring algorithm (scaled 1–5) and multimodal LLM evaluation.
-   - **Usage**: Records relevance metrics for every scene inside `timeline.json` and reports aggregate score in `manifest.json`.
+   - **Engine**: Metadata & concept overlap scoring algorithm (scaled 1–5) ; no independent vision-language-model scoring is implemented in this repository snapshot.
+   - **Usage**: The current `relevance_score` is a heuristic metadata/search-position score, not a human rating or independent VLM judgment. Treat it as a heuristic only.
 
 ---
 

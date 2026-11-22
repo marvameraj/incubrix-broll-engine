@@ -174,7 +174,7 @@ def studio_ui():
 @app.get("/api/v1/ready")
 def ready():
     ffmpeg_ok = shutil.which("ffmpeg") is not None
-    storage_ok = os.path.isdir(settings.local_storage_dir) if settings.storage_backend == "local" else True
+    storage_ok = storage.check_health()
     if not ffmpeg_ok or not storage_ok:
         raise AppError("SERVICE_UNAVAILABLE", "FFmpeg or storage backend is not ready.", status_code=503, retryable=True)
     return {
@@ -199,8 +199,10 @@ async def create_broll_job(
 ):
     idem_key = _require_idempotency_key(idempotency_key)
     req_dict = payload.model_dump()
-    req_dict["correlation_id"] = getattr(request.state, "correlation_id", str(uuid.uuid4()))
+    # Correlation IDs are per-request metadata, not part of the logical payload.
+    # Excluding them makes retries with the same idempotency key deterministic.
     payload_hash = compute_payload_hash(req_dict)
+    req_dict["correlation_id"] = getattr(request.state, "correlation_id", str(uuid.uuid4()))
 
     existing = lookup_idempotency(idem_key)
     if existing:
