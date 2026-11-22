@@ -5,15 +5,15 @@
 ## 1. Architecture & Design Decisions
 
 - **API & Persistence (`app/main.py`, `app/db.py`)**:
-  - FastAPI asynchronous service backed by SQLite (`incubrix_jobs.db`) for durable job tracking across container restarts.
+  - FastAPI asynchronous service backed by SQLite (`incubrix_jobs.db`) for job tracking. Persistence across container replacement requires a persistent mounted volume; the default ephemeral container filesystem does not provide that guarantee.
   - Strict SHA-256 payload-checked `Idempotency-Key` enforcement: sending the same request twice returns the cached job (`202 Accepted` with `idempotent_replay: true`), while submitting a changed payload with the same key returns `409 IDEMPOTENCY_KEY_REUSED`.
-- **Non-Blocking Execution**:
-  - CPU-bound operations (FFmpeg encoding, Whisper ASR, OpenCV processing, and network downloads) run inside `asyncio.to_thread(...)`, keeping the event loop responsive to incoming API requests, health probes, and status polling.
+- **Background Execution (current limitation)**:
+  - Jobs currently use FastAPI `BackgroundTasks`; CPU-bound stages are offloaded with `asyncio.to_thread(...)`. This is not a durable queue. A process restart can interrupt in-flight work. A persistent worker queue is a recommended production improvement.
 - **Speech Synthesis (TTS) & Transcription (ASR)**:
   - **TTS**: High-fidelity neural voiceover via `edge-tts` (supporting `en-IN-female`, `hi-IN-female`, `ta-IN-female`) with word-boundary event extraction (`WordBoundary`) to synchronize scene cuts. Offline fallback to local OS speech synthesis (`pyttsx3`) ensures zero runtime crashes in any environment.
   - **ASR**: `faster-whisper` (`base` model, CTranslate2 INT8 quantization) extracting word-level timestamps, combined with 16 kHz mono RMS energy checks (`SILENT_AUDIO` / `NO_SPEECH_DETECTED` guardrails).
 - **Dual Keyless Commercial Stock Retrieval + Pacing Enforcer**:
-  - **Source A (Primary)**: Wikimedia Commons Video API (`filetype:video`, filtered to allow commercial CC0, CC-BY, and Public Domain licenses). Implements smart query broadening so long queries gracefully fall back to domain keywords rather than failing.
+  - **Source A (Primary)**: Wikimedia Commons Video API (`filetype:video`, filtered using an explicit allowlist of recognized CC0, CC BY, CC BY-SA and Public Domain labels; verify the source item’s exact licence and attribution before redistribution). Implements smart query broadening so long queries gracefully fall back to domain keywords rather than failing.
   - **Source B (Failover)**: Internet Archive Open Video API (`publicdomain` and CC-BY 4.0 MPEG-4 clips).
   - **Source C (Fallback / Abstract)**: IncuBrix Kinetic Motion Card Generator using Pillow + FFmpeg `zoompan` for abstract concepts or statistics lines (`is_ai_generated: false`).
   - **Indic Multilingual Support**: Translates/maps Hindi (`hi-IN`) and Tamil (`ta-IN`) keywords to English visual queries before calling stock APIs, ensuring non-English voiceovers receive real video footage.
@@ -24,7 +24,7 @@
 
 ---
 
-## 2. 10-Case Evaluation Suite (`test_inputs.json`)
+## 2. Evaluation Suite (`test_inputs.json`) — requires fresh verification
 
 | Case | Scenario | Expected Behavior | Status | Relevance Score |
 | :--- | :--- | :--- | :---: | :---: |
