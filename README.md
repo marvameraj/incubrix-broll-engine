@@ -14,7 +14,7 @@ FastAPI Gateway & SQLite Store
   ├── Validation, Idempotency Check, Rate Limiter (Token Bucket)
   └── Structured JSON Logging (X-Correlation-Id + job_id)
         │
-        ▼ (Async Job Dispatch: Background Worker)
+        ▼ (In-process Job Dispatch: FastAPI BackgroundTasks (not a durable queue))
 Pipeline Stages:
   1. Audio Ingestion:
      ├── Text Script ──► Edge-TTS / SAPI5 (Word-Level Timestamps)
@@ -76,7 +76,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ## 3. How to Run Tests
 
-All unit, integration, and end-to-end tests run with **zero external API keys** using mock adapters:
+The automated test suite uses mock adapters and does not replace a real-provider integration run:
 
 ```bash
 # Run full test suite
@@ -117,7 +117,7 @@ All settings are driven via environment variables or `.env`:
 | `WHISPER_MODEL_SIZE` | `base` | Faster-Whisper model size (`tiny`, `base`, `small`) |
 | `MAX_AUDIO_DURATION_SEC` | `600` | Maximum audio duration limit (10 minutes) |
 | `MIN_SCENE_DURATION_SEC` | `2.0` | Minimum scene clip duration to avoid visual flashing |
-| `STORAGE_BACKEND` | `s3` | Output file storage (`s3` for MinIO or `local`) |
+| `STORAGE_BACKEND` | `local` | Output file storage (`s3` for MinIO or `local`) |
 | `S3_ENDPOINT_URL` | `http://minio:9000` | S3-compatible MinIO endpoint |
 | `S3_BUCKET` | `incubrix-broll` | S3 bucket name for output assets |
 
