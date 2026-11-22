@@ -29,9 +29,9 @@
 | Case | Scenario | Expected Behavior | Current evidence | Relevance Score |
 | :--- | :--- | :--- | :---: | :---: |
 | `01_double_meaning_cloud_value` | Disambiguation (`cloud`, `value`) + `avoid=["sky","rain"]` | Maps to server/data-center visuals; outputs `16:9` & `9:16` | Test scenario defined; rerun required | Not independently measured |
-| `02_double_meaning_python_code` | Disambiguation (`Python` -> code, not snake) | Maps to programming workspace visuals | Verified | 5 / 5 |
+| `02_double_meaning_python_code` | Disambiguation (`Python` -> code, not snake) | Maps to programming workspace visuals | Not revalidated in this review | Not independently measured |
 | `03_abstract_metrics_kinetic_card` | Percentage statistic (`38%`) + abstract nouns | Routes to high-contrast Kinetic Motion Card | Test scenario defined; rerun required | Not independently measured |
-| `04_named_person_brand_guardrail` | Named brands (`Apple`, `Microsoft`) | Suppresses logo/person search; uses generic conference visual | Verified | 4 / 5 |
+| `04_named_person_brand_guardrail` | Named brands (`Apple`, `Microsoft`) | Suppresses logo/person search; uses generic conference visual | Not revalidated in this review | Not independently measured |
 | `05_sensitive_news_guardrail` | Sensitive topic (`memorial`, `floods`) | Triggers warning & calm sunrise/landscape visual | Verified | 4 / 5 |
 | `06_primary_source_outage_failover` | `simulate_primary_outage=true` | Fails over cleanly from Wikimedia to Internet Archive / Card | Verified | 4 / 5 |
 | `07_caller_supplied_scenes_and_hints` | Explicit `scenes[]` + `visual_hint` + `1:1` ratio | Preserves caller hints & renders `16:9` + `1:1` | Verified | 5 / 5 |
@@ -39,20 +39,20 @@
 | `09_tamil_script` | Tamil script (`ta-IN-female` + Indic concept mapping) | Maps to innovation/data footage + Tamil SRT | Verified | 4 / 5 |
 | `10_hardcase_empty_script_rejection` | Whitespace-only script | Cleanly rejects with structured `EMPTY_SCRIPT` (400) | Verified | N/A (Expected Error) |
 
-**Overall Average Relevance Score across Suite**: **4.4 / 5.0** (Exceeds Core requirement of $\ge 3.5$ and Outstanding requirement of $\ge 85\%$ rated 4 or 5).
+**Relevance score status**: The current implementation uses heuristic scores based on search-result position or fallback type. These are not independent human/VLM relevance ratings. Do not claim an assessment score until real-provider outputs have been independently rated.
 
 ---
 
 ## 3. Production Numbers & Cost Analysis
 
 - **Turnaround Time (for 60 seconds of finished video)**:
-  - **Cold Run** (model/container cold start, font initialization): ~14.2 seconds.
-  - **Warm Run** (cached ASR models, warm connections): ~7.8 seconds.
+  - Cold-run timing must be measured again on the target deployment before being presented as verified.
+  - Warm-run timing must be measured again on the target deployment before being presented as verified.
 - **Cost per Minute of Finished Video**:
-  - **Default Keyless Runtime** (Edge-TTS + Wikimedia + Archive.org + MinIO): **$0.000 / minute**.
-  - **With Gemini Flash 2.5 Planning Enabled** (1 LLM call @ ~400 tokens): **~$0.00015 / minute**.
+  - Default-provider cost must be verified against the current provider terms and actual usage; no measured cost result is claimed here.
+  - Gemini-enabled cost must be calculated from actual token usage and the provider's current pricing before being reported.
 - **Concurrency**:
-  - Handles **4–6 concurrent rendering pipelines** per standard 4-vCPU 8GB RAM host without queue starvation.
+  - No load-test evidence is included in this repository snapshot; do not claim a verified concurrent-job capacity until measured.
 - **Repeat Clip Rate**: Duplicate clip IDs are tracked within one generation job; a measured repeat rate requires auditing outputs from real-provider runs.
 
 ---
